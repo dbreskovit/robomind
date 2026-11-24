@@ -1,0 +1,1737 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RoboMind EdTech | Protótipo</title>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+/* =========================================================
+   RoboMind EdTech — protótipo em HTML e CSS (sem JavaScript)
+   Telas: 1) site para escolas  2) dashboard do aluno  3) painel do professor
+   A troca de telas e o menu do aluno usam radio buttons + :has().
+   "Analisar meu código" e "Enviar respostas" usam checkboxes; a nota do
+   questionário é somada com contadores CSS. O LED do topo pisca com @keyframes.
+   ========================================================= */
+
+/* ---------- Tokens da marca ---------- */
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+
+  /* cores fixas da identidade */
+  --azul:#0047AB;      /* Azul Ciber */
+  --verde:#00C853;     /* Verde Lógica */
+  --laranja:#FF6D00;   /* Laranja Energia */
+  --grafite:#212121;   /* Cinza Grafite */
+  --marinho:#0A1D42;   /* fundo do logo e do editor */
+  --marinho-2:#06132E;
+  --marinho-linha:#1D3466;
+  --logo-robo:#0B2E66;
+  --logo-visor:#0B2E66;
+  --logo-mind:#00C853;
+
+  /* superfícies e texto (tema claro) */
+  --bg:#F1F4FA;
+  --surface:#FFFFFF;
+  --surface-2:#E7EDF8;
+  --ink:#212121;
+  --ink-2:#525C6E;
+  --line:#D3DBEA;
+  --azul-fill:#0047AB;
+  --azul-texto:#0047AB;
+  --verde-texto:#00772F;
+  --laranja-texto:#B54800;
+  --azul-suave:#E1EAFA;
+  --verde-suave:#DBF6E5;
+  --laranja-suave:#FFE9D9;
+  --sombra:0 24px 48px -24px rgba(10,29,66,.45);
+
+  --f-titulo:"Montserrat","Avenir Next","Segoe UI",system-ui,sans-serif;
+  --f-texto:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --f-codigo:"Fira Code",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#081229; --surface:#0E1C3D; --surface-2:#16284F;
+    --ink:#EDF1F9; --ink-2:#A7B4CE; --line:#25396A;
+    --azul-fill:#1A5FD6; --azul-texto:#8DB6FF; --verde-texto:#4EE08A; --laranja-texto:#FF9A4D;
+    --azul-suave:#12295A; --verde-suave:#0C3A26; --laranja-suave:#43240C;
+    --sombra:0 24px 48px -24px rgba(0,0,0,.7);
+    --logo-robo:#8DB6FF;
+    --logo-visor:#2D6FD6;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#081229; --surface:#0E1C3D; --surface-2:#16284F;
+  --ink:#EDF1F9; --ink-2:#A7B4CE; --line:#25396A;
+  --azul-fill:#1A5FD6; --azul-texto:#8DB6FF; --verde-texto:#4EE08A; --laranja-texto:#FF9A4D;
+  --azul-suave:#12295A; --verde-suave:#0C3A26; --laranja-suave:#43240C;
+  --sombra:0 24px 48px -24px rgba(0,0,0,.7);
+  --logo-robo:#8DB6FF;
+  --logo-visor:#2D6FD6;
+}
+
+/* ---------- Base ---------- */
+*,*::before,*::after{box-sizing:border-box}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%}
+body{
+  height:100%;margin:0;display:flex;flex-direction:column;
+  background:var(--bg);color:var(--ink);
+  font-family:var(--f-texto);font-size:16px;line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4,p,ul,ol{margin:0}
+ul,ol{padding:0;list-style:none}
+img,svg{max-width:100%;display:block}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--laranja);outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.wrap{width:min(1180px,100% - 40px);margin-inline:auto}
+
+/* ---------- Barra do protótipo (troca de telas) ---------- */
+.proto{
+  flex:none;display:flex;align-items:center;gap:16px;
+  padding:8px 16px;background:var(--grafite);color:#fff;font-size:.8125rem;
+  border-bottom:1px solid #3A3A3A;
+}
+.proto-nome{font-family:var(--f-titulo);font-weight:700;white-space:nowrap}
+.proto-telas{display:flex;gap:4px;margin-left:auto;overflow-x:auto}
+.proto-telas label{
+  padding:6px 13px;border-radius:999px;cursor:pointer;white-space:nowrap;color:#C9CFDA;
+}
+.proto-telas label:hover{color:#fff}
+.proto-telas label:has(input:checked){background:#fff;color:var(--grafite);font-weight:600}
+.proto-telas label:has(input:focus-visible){outline:2px solid var(--laranja);outline-offset:1px}
+
+.screen{display:none;flex:1;min-height:0;overflow-y:auto;overflow-x:hidden}
+#landing{display:block;scroll-behavior:smooth}
+body:has(#go-aluno:checked) #landing,
+body:has(#go-professor:checked) #landing{display:none}
+body:has(#go-aluno:checked) #aluno{display:flex}
+body:has(#go-professor:checked) #professor{display:block}
+
+/* ---------- Logo: robô amigável + "Robo" azul e "Mind" verde ---------- */
+.logo{
+  display:inline-flex;align-items:center;gap:.4em;white-space:nowrap;text-decoration:none;
+  font-family:var(--f-titulo);font-weight:800;font-size:1.3rem;letter-spacing:-.025em;line-height:1;
+}
+.logo-icone{width:1.75em;height:1.35em;flex:none;overflow:visible}
+.logo-robo{color:var(--logo-robo)}
+.logo-mind{color:var(--logo-mind)}
+.logo small{font-size:.58em;font-weight:600;letter-spacing:0;color:var(--ink-2);margin-left:0;align-self:flex-end;margin-bottom:.12em}
+
+/* ---------- Botões ---------- */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  font-family:var(--f-titulo);font-weight:700;font-size:.9375rem;line-height:1.2;
+  padding:13px 20px;border-radius:12px;border:1.5px solid transparent;
+  text-decoration:none;cursor:pointer;white-space:nowrap;
+  transition:transform .12s ease, background-color .12s ease;
+}
+.btn:active{transform:translateY(1px)}
+.btn-laranja{background:var(--laranja);color:#212121}
+.btn-laranja:hover{background:#FF8124}
+.btn-azul{background:var(--azul-fill);color:#fff}
+.btn-verde{background:var(--verde);color:#212121}
+.btn-verde:hover{background:#19D968}
+.btn-ghost{background:transparent;color:var(--ink);border-color:var(--ink)}
+.btn-ghost:hover{background:var(--surface)}
+.btn-p{padding:9px 14px;font-size:.8125rem;border-radius:10px}
+.btn svg{width:18px;height:18px;flex:none}
+
+/* =========================================================
+   TELA 1 — SITE PARA ESCOLAS
+   ========================================================= */
+.topo{
+  position:sticky;top:0;z-index:5;
+  background:var(--bg);border-bottom:1px solid var(--line);
+}
+.topo .wrap{display:flex;align-items:center;gap:28px;min-height:64px}
+.topo-links{display:flex;gap:24px;margin-left:auto}
+.topo-links a{color:var(--ink);text-decoration:none;font-size:.9375rem;font-weight:500}
+.topo-links a:hover{color:var(--azul-texto);text-decoration:underline;text-underline-offset:4px}
+
+.hero{padding:72px 0 0}
+.hero h1{
+  font-family:var(--f-titulo);font-weight:800;
+  font-size:clamp(2rem,4.4vw + .6rem,4.1rem);line-height:1.04;letter-spacing:-.035em;
+  max-width:19em;text-wrap:balance;
+}
+.hero-linha{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;gap:32px;align-items:end;margin-top:28px;
+}
+.hero-linha p{max-width:58ch;font-size:1.125rem;color:var(--ink-2)}
+.hero-cta{display:flex;flex-wrap:wrap;gap:12px}
+
+/* A bancada: kit, plataforma e tutor funcionando juntos */
+.bancada{
+  margin-top:52px;padding:28px;border-radius:28px;
+  background:var(--marinho);color:#E6ECF8;box-shadow:var(--sombra);
+  display:grid;grid-template-columns:1.3fr 1fr .9fr;gap:28px;
+}
+.peca{display:flex;flex-direction:column;min-width:0}
+.peca-visual{flex:1;display:flex;flex-direction:column;justify-content:center;min-height:250px}
+.peca-legenda{border-top:3px solid;padding-top:14px;margin-top:22px}
+.peca-kit .peca-legenda{border-color:var(--laranja)}
+.peca-plataforma .peca-legenda{border-color:#6FA3FF}
+.peca-tutor .peca-legenda{border-color:var(--verde)}
+.peca h2{font-family:var(--f-titulo);font-weight:700;font-size:1.0625rem;color:#fff;margin-bottom:6px}
+.peca-legenda p{font-size:.9375rem;color:#B7C4DE}
+
+.kit-svg{width:100%;height:auto}
+.kit-svg text{font-family:var(--f-codigo)}
+
+/* bloco de código (hero e editor) */
+.codigo{
+  counter-reset:l;width:100%;overflow-x:auto;
+  font-family:var(--f-codigo);font-size:.8125rem;line-height:1.75;
+  background:var(--marinho-2);border:1px solid var(--marinho-linha);border-radius:14px;
+  padding:14px 0;color:#E6ECF8;
+}
+.l{display:block;white-space:pre;padding:0 16px 0 0;min-width:max-content}
+.l::before{
+  counter-increment:l;content:counter(l);
+  display:inline-block;width:3.2ch;margin-right:1.6ch;text-align:right;color:#4C5F8A;
+}
+.c{color:#7C8DB0}       /* comentário */
+.k{color:#7FB2FF}       /* palavra-chave */
+.f{color:#FFB067}       /* função */
+.n{color:#5BE89A}       /* número e constante */
+
+/* O único movimento automático da página: o Blink.
+   LED e linhas do código alternam a cada 1 s, como o delay(1000). */
+.fase-a{animation:fase-a 2s linear infinite}
+.fase-b{animation:fase-b 2s linear infinite}
+.l.marca-a{animation:marca-a 2s linear infinite}
+.l.marca-b{animation:marca-b 2s linear infinite}
+@keyframes fase-a{0%,49.99%{opacity:1}50%,100%{opacity:0}}
+@keyframes fase-b{0%,49.99%{opacity:0}50%,100%{opacity:1}}
+@keyframes marca-a{0%,49.99%{background:rgba(0,200,83,.2);box-shadow:inset 3px 0 0 #00C853}50%,100%{background:transparent;box-shadow:none}}
+@keyframes marca-b{0%,49.99%{background:transparent;box-shadow:none}50%,100%{background:rgba(111,163,255,.16);box-shadow:inset 3px 0 0 #6FA3FF}}
+
+/* conversa com o tutor (hero) */
+.conversa{display:flex;flex-direction:column;gap:10px}
+.conversa-quem{display:flex;align-items:center;gap:10px;font-weight:600;font-size:.875rem;color:#fff;margin-bottom:4px}
+.robo{width:40px;height:40px;flex:none;border-radius:12px;background:var(--marinho-2);border:1px solid var(--marinho-linha);padding:4px}
+.fala{padding:10px 14px;border-radius:16px;font-size:.9rem;line-height:1.45;max-width:95%}
+.fala-aluno{align-self:flex-end;background:#1B3F86;color:#fff;border-bottom-right-radius:4px}
+.fala-tutor{align-self:flex-start;background:#fff;color:#212121;border-bottom-left-radius:4px}
+.fala code,.msg code{font-family:var(--f-codigo);font-size:.92em}
+
+/* seções */
+.sec{padding:96px 0}
+.sec-faixa{background:var(--surface);border-block:1px solid var(--line)}
+.sec-titulo{
+  font-family:var(--f-titulo);font-weight:800;
+  font-size:clamp(1.6rem,2.2vw + .9rem,2.5rem);line-height:1.1;letter-spacing:-.025em;
+  max-width:21em;text-wrap:balance;margin-bottom:16px;
+}
+.sec-intro{max-width:62ch;color:var(--ink-2);font-size:1.0625rem}
+[id]{scroll-margin-top:84px}
+
+/* problema x resposta */
+.dores{margin-top:44px;border-bottom:1px solid var(--line)}
+.dores-cab,.dor{display:grid;grid-template-columns:1fr 1fr;gap:40px}
+.dores-cab{font-size:.875rem;font-weight:600;color:var(--ink-2);padding-bottom:12px}
+.dor{border-top:1px solid var(--line);padding:26px 0}
+.dor h3{font-family:var(--f-titulo);font-weight:700;font-size:1.25rem;letter-spacing:-.01em;margin-bottom:6px}
+.dor p{color:var(--ink-2);max-width:52ch}
+.resposta{border-left:3px solid var(--verde);padding-left:20px;align-self:center}
+.resposta p{color:var(--ink);font-weight:500}
+
+/* como funciona: quatro passos ligados por um jumper laranja */
+.passos{position:relative;display:grid;grid-template-columns:repeat(4,1fr);gap:32px;margin-top:48px;counter-reset:p}
+.passos::before{content:"";position:absolute;top:17px;left:0;right:0;height:3px;border-radius:2px;background:var(--laranja)}
+.passos li{position:relative;padding-top:58px;counter-increment:p}
+.passos li::before{
+  content:counter(p);position:absolute;top:0;left:0;width:37px;height:37px;border-radius:50%;
+  display:grid;place-items:center;
+  font-family:var(--f-titulo);font-weight:800;font-size:.9375rem;
+  background:var(--surface);color:var(--ink);border:3px solid var(--laranja);
+}
+.passos h3{font-family:var(--f-titulo);font-weight:700;font-size:1.0625rem;margin-bottom:6px}
+.passos p{color:var(--ink-2);font-size:.9375rem}
+
+/* trilha: escada de blocos encaixáveis */
+.escada{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;align-items:end;margin-top:56px}
+.degrau{
+  position:relative;display:flex;flex-direction:column;gap:4px;
+  min-height:calc(104px + var(--n) * 36px);
+  padding:18px 16px;border-radius:4px 14px 4px 4px;
+  background:var(--c);color:var(--ink);
+}
+.degrau::before{
+  content:"";position:absolute;top:-9px;left:16px;width:38px;height:9px;
+  border-radius:5px 5px 0 0;background:var(--c);
+}
+.degrau-azul{--c:var(--azul-suave);--t:var(--azul-texto)}
+.degrau-verde{--c:var(--verde-suave);--t:var(--verde-texto)}
+.degrau-laranja{--c:var(--laranja-suave);--t:var(--laranja-texto)}
+.degrau .ano{font-family:var(--f-titulo);font-weight:800;font-size:.9375rem;color:var(--t)}
+.degrau strong{font-family:var(--f-titulo);font-weight:700;font-size:1.0625rem;line-height:1.25}
+.degrau span:last-child{font-size:.875rem;color:var(--ink-2)}
+.eixos{margin-top:28px;color:var(--ink-2);font-size:.9375rem;max-width:70ch}
+
+/* coordenação */
+.coord{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:56px;align-items:center}
+.checks{margin:24px 0 28px;display:grid;gap:12px}
+.checks li{position:relative;padding-left:30px}
+.checks li::before{
+  content:"";position:absolute;left:2px;top:.32em;width:14px;height:8px;
+  border-left:3px solid var(--verde);border-bottom:3px solid var(--verde);transform:rotate(-45deg);
+}
+.previa{background:var(--bg);border:1px solid var(--line);border-radius:20px;padding:22px}
+.previa h3{font-family:var(--f-titulo);font-weight:700;font-size:1rem;margin-bottom:4px}
+.previa > p{font-size:.875rem;color:var(--ink-2);margin-bottom:14px}
+.previa-linha{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.4fr);gap:14px;align-items:center;padding:12px 0;border-top:1px solid var(--line);font-size:.9rem}
+.habs{display:flex;flex-wrap:wrap;gap:5px}
+.hab{font-size:.75rem;font-weight:600;padding:3px 8px;border-radius:6px;background:var(--verde-suave);color:var(--verde-texto);white-space:nowrap}
+
+/* preço + contato */
+.fechamento{background:var(--azul);color:#fff;padding:88px 0}
+.fechamento .wrap{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:56px;align-items:center}
+.fechamento .sec-titulo{margin-bottom:14px}
+.fechamento p{color:#D4E2FA;max-width:48ch}
+.fechamento .checks li::before{border-color:#7DF0AE}
+.form{background:var(--surface);color:var(--ink);border-radius:20px;padding:26px;display:grid;gap:14px}
+.form .btn{white-space:normal}
+.form h3{font-family:var(--f-titulo);font-weight:700;font-size:1.25rem}
+.campo{display:grid;gap:6px;font-size:.875rem;font-weight:600}
+.campo input,.campo select{
+  font-weight:400;font-size:1rem;padding:11px 12px;width:100%;
+  border:1.5px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);
+}
+.campo input::placeholder{color:var(--ink-2);opacity:.7}
+
+.rodape{padding:40px 0;font-size:.875rem;color:var(--ink-2)}
+.rodape .wrap{display:flex;flex-wrap:wrap;gap:16px 40px;align-items:center;justify-content:space-between}
+.rodape-redes{display:flex;gap:18px}
+.rodape a{color:var(--ink-2)}
+.rodape p{max-width:46ch}
+
+/* =========================================================
+   TELAS 2 e 3 — PLATAFORMA
+   ========================================================= */
+.app-topo{
+  flex:none;position:sticky;top:0;z-index:3;
+  display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:24px;
+  padding:10px 20px;background:var(--surface);border-bottom:1px solid var(--line);
+}
+.perfil{display:flex;align-items:center;gap:10px;font-size:.875rem;line-height:1.25}
+.perfil b{display:block;font-weight:600}
+.perfil span{color:var(--ink-2);font-size:.8125rem}
+.iniciais{
+  width:38px;height:38px;border-radius:50%;flex:none;display:grid;place-items:center;
+  background:var(--laranja);color:#212121;font-family:var(--f-titulo);font-weight:800;font-size:.875rem;
+}
+.medalhas{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;background:var(--laranja-suave);color:var(--laranja-texto);font-weight:600;font-size:.8125rem;white-space:nowrap}
+.medalhas svg{width:16px;height:16px}
+
+.trilha-prog{width:100%;max-width:480px;margin-inline:auto}
+.trilha-prog-linha{display:flex;justify-content:space-between;gap:12px;font-size:.8125rem;margin-bottom:6px}
+.trilha-prog-linha b{font-weight:600}
+.trilha-prog-linha span{color:var(--ink-2)}
+.barra{height:10px;border-radius:999px;background:var(--surface-2);overflow:hidden}
+.barra i{display:block;height:100%;border-radius:999px;background:var(--verde)}
+
+/* ----- Dashboard do aluno ----- */
+#aluno{flex-direction:column;overflow:hidden}
+.app-corpo{flex:1;min-height:0;display:grid;grid-template-columns:230px minmax(0,1fr) 340px}
+.app-nav{background:var(--surface);border-right:1px solid var(--line);padding:16px 12px;overflow-y:auto;display:flex;flex-direction:column;gap:4px}
+.nav-item{
+  display:flex;align-items:center;gap:12px;width:100%;text-align:left;
+  padding:11px 12px;border-radius:10px;border:0;background:transparent;cursor:pointer;
+  font-weight:500;font-size:.9375rem;color:var(--ink-2);
+}
+.nav-item svg{width:22px;height:22px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.nav-item:hover{background:var(--surface-2);color:var(--ink)}
+.nav-item.ativo{background:var(--azul-suave);color:var(--azul-texto);font-weight:600}
+
+.app-main{overflow-y:auto;padding:24px;container-type:inline-size}
+.aula-cab{display:flex;flex-wrap:wrap;gap:12px 16px;align-items:flex-end;justify-content:space-between;margin-bottom:20px}
+.aula-cab h1{font-family:var(--f-titulo);font-weight:800;font-size:1.5rem;letter-spacing:-.02em;line-height:1.2}
+.aula-cab p{color:var(--ink-2);font-size:.9375rem;margin-top:4px;max-width:64ch}
+.aula-grade{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start}
+@container (max-width:760px){.aula-grade{grid-template-columns:minmax(0,1fr)}}
+
+.video{position:relative;border-radius:16px;overflow:hidden;background:var(--marinho);aspect-ratio:16/9}
+.video svg{width:100%;height:100%}
+.video-play{
+  flex:none;width:36px;height:36px;border-radius:50%;border:0;cursor:pointer;
+  background:#fff;display:grid;place-items:center;
+}
+.video-play svg{width:15px;height:15px;margin-left:2px}
+.video-tempo{
+  position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;gap:12px;
+  padding:22px 14px 12px;color:#fff;font-size:.8125rem;font-variant-numeric:tabular-nums;
+  background:linear-gradient(transparent,rgba(6,19,46,.92));
+}
+.video-tempo .barra{flex:1;height:5px;background:rgba(255,255,255,.25)}
+.video-tempo .barra i{background:var(--laranja)}
+
+.montagem{margin-top:18px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px}
+.montagem h2{font-family:var(--f-titulo);font-weight:700;font-size:1rem;margin-bottom:10px}
+.passo-check{display:flex;gap:12px;align-items:flex-start;padding:8px 0;cursor:pointer;font-size:.9375rem}
+.passo-check input{appearance:none;-webkit-appearance:none;flex:none;width:22px;height:22px;margin:1px 0 0;border-radius:7px;border:2px solid var(--line);background:var(--surface);cursor:pointer;display:grid;place-items:center}
+.passo-check input::after{content:"";width:10px;height:6px;border-left:2.5px solid #212121;border-bottom:2.5px solid #212121;transform:rotate(-45deg) translate(1px,-1px);opacity:0}
+.passo-check input:checked{background:var(--verde);border-color:var(--verde)}
+.passo-check input:checked::after{opacity:1}
+.passo-check input:checked + span{color:var(--ink-2)}
+
+.editor{border-radius:16px;overflow:hidden;background:var(--marinho-2);border:1px solid var(--marinho-linha);color:#E6ECF8}
+.editor-topo{display:flex;align-items:flex-end;gap:8px;padding:8px 10px 0;background:var(--marinho)}
+.aba{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;font-family:var(--f-codigo);font-size:.78rem;font-weight:500;padding:9px 14px;background:var(--marinho-2);border-radius:9px 9px 0 0}
+.editor-acoes{margin-left:auto;display:flex;gap:6px;padding-bottom:8px;flex:none}
+.btn-editor{white-space:nowrap;font-family:var(--f-titulo);font-weight:700;font-size:.75rem;padding:7px 11px;border-radius:8px;border:1px solid #33508F;background:transparent;color:#E6ECF8;cursor:pointer}
+.btn-editor:hover{background:#12295A}
+.btn-editor.enviar{background:var(--verde);border-color:var(--verde);color:#212121}
+.editor .codigo{border:0;border-radius:0}
+.console{border-top:1px solid var(--marinho-linha);padding:10px 16px;font-family:var(--f-codigo);font-size:.76rem;line-height:1.7;color:#9FB0D0}
+.console .ok{color:#5BE89A}
+#aluno:has(#analisar:checked) .l.suspeita{background:rgba(255,109,0,.18);box-shadow:inset 3px 0 0 var(--laranja)}
+
+.app-tutor{display:flex;flex-direction:column;min-height:0;background:var(--surface);border-left:1px solid var(--line)}
+.tutor-topo{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line)}
+.tutor-topo .robo{background:var(--marinho);width:44px;height:44px}
+.tutor-topo h2{font-family:var(--f-titulo);font-weight:700;font-size:1rem;line-height:1.2}
+.tutor-topo p{font-size:.8125rem;color:var(--verde-texto);font-weight:500}
+.tutor-msgs{flex:1;min-height:0;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px}
+.msg{max-width:92%;padding:10px 13px;border-radius:14px;font-size:.9rem;line-height:1.5}
+.msg-tutor{align-self:flex-start;background:var(--surface-2);border-bottom-left-radius:4px}
+.msg-aluno{align-self:flex-end;background:var(--azul-fill);color:#fff;border-bottom-right-radius:4px}
+.pos-analise{display:none}
+#aluno:has(#analisar:checked) .pos-analise{display:block;animation:surgir .28s ease-out both}
+#aluno:has(#analisar:checked) .msg-tutor.pos-analise{animation-delay:.35s}
+@keyframes surgir{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.tutor-acoes{padding:12px 16px 16px;border-top:1px solid var(--line);display:grid;gap:10px}
+.btn-analisar{width:100%}
+.btn-analisar:has(input:focus-visible){outline:3px solid var(--laranja);outline-offset:2px}
+.btn-analisar .depois{display:none}
+.btn-analisar:has(input:checked){background:transparent;border-color:var(--line);color:var(--ink-2)}
+.btn-analisar:has(input:checked) .antes{display:none}
+.btn-analisar:has(input:checked) .depois{display:inline}
+.compor{display:flex;gap:8px}
+.compor input{flex:1;min-width:0;padding:10px 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);font-size:.9rem}
+.compor button{flex:none;width:42px;border-radius:10px;border:0;background:var(--azul-fill);color:#fff;cursor:pointer;display:grid;place-items:center}
+.compor svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ----- Navegação do aluno: cada item do menu é um radio button ----- */
+.nav-item{position:relative}
+label.nav-item:has(input:checked){background:var(--azul-suave);color:var(--azul-texto);font-weight:600}
+label.nav-item:has(input:focus-visible){outline:3px solid var(--laranja);outline-offset:-2px}
+.nav-sub{padding:8px 12px 8px 28px;font-size:.875rem}
+.nav-sub svg{width:18px;height:18px}
+#aluno:has(#v-aula:checked) .nav-pai,
+#aluno:has(#v-quiz:checked) .nav-pai{color:var(--azul-texto);font-weight:600}
+
+.vista{display:none}
+#aluno:has(#v-aulas:checked) .vista-aulas,
+#aluno:has(#v-aula:checked) .vista-aula,
+#aluno:has(#v-quiz:checked) .vista-quiz,
+#aluno:has(#v-projetos:checked) .vista-projetos,
+#aluno:has(#v-desafios:checked) .vista-desafios,
+#aluno:has(#v-medalhas:checked) .vista-medalhas{display:block}
+
+.sub-titulo{font-family:var(--f-titulo);font-weight:700;font-size:1rem;margin:0 0 12px}
+.pontos{display:inline-flex;align-items:center;padding:6px 12px;border-radius:999px;background:var(--verde-suave);color:var(--verde-texto);font-weight:600;font-size:.8125rem;white-space:nowrap}
+.lista-painel{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:2px 18px}
+.lista-painel > li{border-top:1px solid var(--line);padding:14px 0}
+.lista-painel > li:first-child{border-top:0}
+
+/* Minhas Aulas: a trilha do ano */
+.trilha-lista{display:grid;gap:10px;max-width:900px;counter-reset:a}
+.aula-item{
+  counter-increment:a;display:grid;grid-template-columns:38px minmax(0,1fr) auto;gap:4px 16px;align-items:center;
+  padding:14px 18px 14px 14px;border-radius:14px;background:var(--surface);border:1px solid var(--line);
+}
+.aula-item::before{
+  content:counter(a);width:38px;height:38px;border-radius:50%;display:grid;place-items:center;
+  font-family:var(--f-titulo);font-weight:800;font-size:.9375rem;background:var(--surface-2);color:var(--ink-2);
+}
+.aula-item.feita::before{background:var(--verde);color:#212121}
+.aula-item.atual{border:2px solid var(--laranja);padding-block:18px}
+.aula-item.atual::before{background:var(--surface);color:var(--ink);border:3px solid var(--laranja)}
+.aula-item.travada{background:transparent;border-style:dashed}
+.aula-item.travada h2{color:var(--ink-2)}
+.aula-item h2{font-family:var(--f-titulo);font-weight:700;font-size:1rem;line-height:1.3}
+.aula-item p{font-size:.875rem;color:var(--ink-2)}
+.aula-lado{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;justify-content:flex-end;font-size:.8125rem;color:var(--ink-2)}
+.etapas{grid-column:2 / -1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:10px}
+.etapas li{padding:10px 12px;border-radius:10px;background:var(--bg);font-size:.8125rem;color:var(--ink-2)}
+.etapas b{display:block;font-size:.875rem;color:var(--ink)}
+.aula-botoes{grid-column:2 / -1;display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+
+/* Questionário */
+.quiz{max-width:760px;counter-reset:resp acertos}
+.quiz-segs{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:24px}
+.quiz-segs i{height:8px;border-radius:4px;background:var(--surface-2)}
+.quiz:has([name=q1]:checked) .s1,
+.quiz:has([name=q2]:checked) .s2,
+.quiz:has([name=q3]:checked) .s3,
+.quiz:has([name=q4]:checked) .s4,
+.quiz:has([name=q5]:checked) .s5{background:var(--verde)}
+.q{margin-bottom:28px}
+.q h2{display:flex;gap:12px;align-items:flex-start;font-family:var(--f-titulo);font-weight:700;font-size:1.0625rem;line-height:1.4;margin-bottom:12px}
+.q-n{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--azul-suave);color:var(--azul-texto);font-size:.875rem;margin-top:-2px}
+.q code,.op code{font-family:var(--f-codigo);font-size:.92em;font-weight:500}
+.ops{display:grid;gap:8px}
+.op{
+  display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:12px;
+  border:1.5px solid var(--line);background:var(--surface);cursor:pointer;font-size:.9375rem;
+}
+.op:hover{border-color:var(--azul-texto)}
+.op input{appearance:none;-webkit-appearance:none;flex:none;width:20px;height:20px;margin:0;border-radius:50%;border:2px solid var(--line);background:var(--surface);cursor:pointer}
+.op input:checked{border:6px solid var(--azul-fill)}
+.op:has(input:checked){border-color:var(--azul-fill);background:var(--azul-suave);counter-increment:resp}
+.op:has(.certa:checked){counter-increment:resp acertos}
+.op::after{margin-left:auto;padding-left:10px;font-size:.75rem;font-weight:600;white-space:nowrap}
+.q-exp{display:none;margin-top:10px;padding:8px 14px;border-left:3px solid var(--verde);font-size:.9rem;color:var(--ink-2)}
+
+.quiz-pe{display:flex;flex-wrap:wrap;gap:12px 16px;align-items:center;justify-content:space-between;padding-top:20px;border-top:1px solid var(--line)}
+.quiz-cont{font-size:.9375rem;color:var(--ink-2)}
+.quiz-cont::before{content:counter(resp) " de 5 respondidas."}
+.quiz-cont span{display:block;font-size:.8125rem}
+.btn-enviar{opacity:.45;pointer-events:none}
+.btn-enviar:has(input:focus-visible){outline:3px solid var(--laranja);outline-offset:2px}
+.quiz:has([name=q1]:checked):has([name=q2]:checked):has([name=q3]:checked):has([name=q4]:checked):has([name=q5]:checked) .btn-enviar{opacity:1;pointer-events:auto}
+.quiz:has([name=q1]:checked):has([name=q2]:checked):has([name=q3]:checked):has([name=q4]:checked):has([name=q5]:checked) .quiz-cont span{display:none}
+
+.quiz-resultado{display:none;padding:24px;border-radius:18px;background:var(--marinho);color:#E6ECF8}
+.quiz-resultado h2{font-family:var(--f-titulo);font-weight:800;font-size:1.5rem;letter-spacing:-.02em;color:#fff;margin-bottom:6px}
+.acertos::before{content:counter(acertos) " de 5"}
+.quiz-resultado p{color:#B7C4DE;max-width:52ch}
+.quiz-resultado-acoes{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
+.btn-claro{background:transparent;color:#fff;border-color:#fff}
+.btn-claro:hover{background:rgba(255,255,255,.1)}
+
+/* depois de enviar: trava as opções, mostra gabarito e explicações */
+.quiz:has(#quiz-enviado:checked) .op{pointer-events:none}
+.quiz:has(#quiz-enviado:checked) .op:has(.certa){border-color:var(--verde);background:var(--verde-suave)}
+.quiz:has(#quiz-enviado:checked) .op:has(.certa)::after{content:"Resposta certa";color:var(--verde-texto)}
+.quiz:has(#quiz-enviado:checked) .op:has(input:checked:not(.certa)){border-color:var(--laranja);background:var(--laranja-suave)}
+.quiz:has(#quiz-enviado:checked) .op:has(input:checked:not(.certa))::after{content:"Sua resposta";color:var(--laranja-texto)}
+.quiz:has(#quiz-enviado:checked) .op:has(input:checked:not(.certa)) input{border-color:var(--laranja)}
+.quiz:has(#quiz-enviado:checked) .op:has(.certa) input{border:6px solid var(--verde)}
+.quiz:has(#quiz-enviado:checked) .q-exp{display:block}
+.quiz:has(#quiz-enviado:checked) .quiz-pe{display:none}
+.quiz:has(#quiz-enviado:checked) .quiz-resultado{display:block;animation:surgir .28s ease-out both}
+
+/* Meus Projetos Arduino */
+.proj-atual{
+  display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr);gap:22px;align-items:center;
+  padding:18px;border-radius:18px;background:var(--surface);border:1px solid var(--line);margin-bottom:26px;max-width:900px;
+}
+.proj-foto{border-radius:12px;overflow:hidden;background:var(--marinho);aspect-ratio:4/3}
+.proj-foto svg{width:100%;height:100%}
+.proj-atual h2{font-family:var(--f-titulo);font-weight:800;font-size:1.25rem;letter-spacing:-.01em;line-height:1.25;margin:8px 0 6px}
+.proj-atual p{color:var(--ink-2);font-size:.9375rem}
+.pecas{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0}
+.pecas li{font-size:.8125rem;padding:4px 10px;border-radius:999px;background:var(--surface-2)}
+.proj-prog{display:flex;align-items:center;gap:12px;font-size:.8125rem;color:var(--ink-2);margin-bottom:16px}
+.proj-prog .barra{flex:1;max-width:220px;height:8px}
+.proj-lista{max-width:900px}
+.proj-lista > li{display:grid;grid-template-columns:52px minmax(0,1.3fr) minmax(0,1fr) auto;gap:14px;align-items:center}
+.proj-icone{width:52px;height:52px;border-radius:12px;background:var(--marinho);padding:6px}
+.proj-lista b{display:block;font-weight:600}
+.proj-lista span{font-size:.875rem;color:var(--ink-2)}
+.arquivo{font-family:var(--f-codigo);font-size:.8125rem !important}
+.proj-livre .proj-icone{background:transparent;border:2px dashed var(--line)}
+
+/* Desafios de Código */
+.desafio-semana{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:center;
+  padding:24px;border-radius:18px;background:var(--marinho);color:#E6ECF8;margin-bottom:26px;max-width:900px;
+}
+.desafio-semana .quando{font-size:.875rem;font-weight:600;color:#FFB067}
+.desafio-semana h2{font-family:var(--f-titulo);font-weight:800;font-size:1.5rem;letter-spacing:-.02em;color:#fff;margin:4px 0 8px}
+.desafio-semana p{color:#B7C4DE;font-size:.9375rem}
+.fatos{display:flex;flex-wrap:wrap;gap:6px 18px;margin:14px 0 18px;font-size:.875rem;color:#E6ECF8}
+.desafios-lista{max-width:900px}
+.desafios-lista > li{display:grid;grid-template-columns:minmax(0,1.6fr) 96px 84px 150px;gap:14px;align-items:center}
+.desafios-lista b{display:block;font-weight:600}
+.desafios-lista span{font-size:.875rem;color:var(--ink-2)}
+.desafios-lista .acao{justify-self:end}
+.dif{display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
+.dif i{width:6px;height:14px;border-radius:2px;background:var(--line)}
+.dif i.on{background:var(--ink)}
+.dif i:last-of-type{margin-right:5px}
+.desafios-lista .sit{color:inherit}
+.desafios-lista .sit-frente{color:var(--verde-texto)}
+
+/* Minhas Medalhas: cada medalha é um chip */
+.proxima{
+  display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:18px;align-items:center;
+  padding:18px 20px;border-radius:18px;background:var(--surface);border:1px solid var(--line);margin-bottom:30px;max-width:900px;
+}
+.proxima h2{font-family:var(--f-titulo);font-weight:700;font-size:1.0625rem}
+.proxima p{font-size:.9rem;color:var(--ink-2);margin:2px 0 10px}
+.proxima .barra{max-width:320px;height:8px}
+.medalhas-grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:26px 18px;max-width:900px;margin-bottom:34px}
+.medalha{display:flex;flex-direction:column;gap:2px;font-size:.875rem;color:var(--ink-2)}
+.medalha b{font-family:var(--f-titulo);font-weight:700;font-size:.9375rem;color:var(--ink);margin-top:10px}
+.chip{position:relative;display:block;flex:none;width:68px;height:68px;color:var(--azul-fill)}
+.chip > svg:first-child{width:100%;height:100%}
+.glifo{position:absolute;inset:0;margin:auto;width:28px;height:28px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.glifo-txt{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--f-titulo);font-style:normal;font-weight:800;font-size:1.375rem;color:#fff}
+.chip-verde{color:var(--verde)}
+.chip-laranja{color:var(--laranja)}
+.chip-verde .glifo,.chip-laranja .glifo{stroke:#212121}
+.chip-verde .glifo-txt,.chip-laranja .glifo-txt{color:#212121}
+.chip-travado{color:var(--line)}
+.chip-travado .glifo{stroke:var(--ink-2)}
+
+/* o tutor muda de assunto conforme a vista */
+.tutor-set{display:none;flex-direction:column;gap:10px}
+#aluno:has(#v-aulas:checked) .set-aulas,
+#aluno:has(#v-aula:checked) .set-aula,
+#aluno:has(#v-quiz:checked) .set-quiz,
+#aluno:has(#v-projetos:checked) .set-projetos,
+#aluno:has(#v-desafios:checked) .set-desafios,
+#aluno:has(#v-medalhas:checked) .set-medalhas{display:flex}
+.pos-envio{display:none}
+#aluno:has(#quiz-enviado:checked) .pos-envio{display:block;animation:surgir .28s ease-out both}
+.btn-analisar{display:none}
+#aluno:has(#v-aula:checked) .btn-analisar{display:inline-flex}
+
+@container (max-width:680px){
+  .aula-item{grid-template-columns:38px minmax(0,1fr)}
+  .aula-lado{grid-column:2;justify-content:flex-start}
+  .etapas{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .proj-atual{grid-template-columns:minmax(0,1fr)}
+  .proj-lista > li{grid-template-columns:52px minmax(0,1fr) auto}
+  .proj-lista .pecas-txt{display:none}
+  .proj-lista > .proj-livre{grid-template-columns:52px minmax(0,1fr)}
+  .proj-livre .btn{grid-column:2;justify-self:start}
+  .desafio-semana{grid-template-columns:minmax(0,1fr)}
+  .desafios-lista > li{grid-template-columns:minmax(0,1fr) auto}
+  .desafios-lista .dif{grid-column:1}
+  .desafios-lista .pts{grid-column:1}
+  .desafios-lista .acao{grid-column:2;grid-row:1 / span 3;align-self:center}
+  .proxima{grid-template-columns:auto minmax(0,1fr)}
+  .proxima .btn{grid-column:1 / -1}
+  .op{flex-wrap:wrap}
+}
+
+/* ----- Painel do professor ----- */
+.escola{font-weight:600;font-size:.9375rem;color:var(--ink-2)}
+.prof{width:min(1180px,100% - 40px);margin-inline:auto;padding:28px 0 64px}
+.prof-cab{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between;margin-bottom:10px}
+.prof-cab h1{font-family:var(--f-titulo);font-weight:800;font-size:1.75rem;letter-spacing:-.02em;line-height:1.15}
+.prof-acoes{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.turma{padding:10px 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);font-weight:600;font-size:.9rem}
+.resumo{max-width:78ch;color:var(--ink-2);font-size:1.0625rem;margin-bottom:24px}
+.resumo b{color:var(--ink);font-weight:600}
+.prof-grade{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:20px;align-items:start}
+.pilha{display:grid;gap:20px}
+.painel{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:22px}
+.painel h2{font-family:var(--f-titulo);font-weight:700;font-size:1.0625rem;line-height:1.25}
+.painel-sub{font-size:.875rem;color:var(--ink-2);margin-top:2px}
+
+.colunas{display:grid;grid-template-columns:repeat(8,1fr);gap:10px;height:230px;margin-top:20px}
+.col{display:flex;flex-direction:column;min-width:0;height:100%}
+.col-barra{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;border-bottom:1px solid var(--line)}
+.col-barra b{font-size:.8125rem;font-weight:600;line-height:22px;font-variant-numeric:tabular-nums}
+.col-barra i{display:block;width:100%;max-width:52px;min-height:3px;height:calc((100% - 22px) * var(--v) / 100);background:var(--azul-fill);border-radius:8px 8px 0 0}
+.col.atual .col-barra i{background:var(--laranja)}
+.col span{text-align:center;font-size:.8125rem;color:var(--ink-2);padding-top:8px;white-space:nowrap}
+.col.atual span{color:var(--ink);font-weight:600}
+.legenda{display:flex;flex-wrap:wrap;gap:6px 20px;margin-top:14px;font-size:.8125rem;color:var(--ink-2)}
+.legenda span{display:inline-flex;align-items:center;gap:7px}
+.legenda span::before{content:"";width:12px;height:12px;border-radius:3px;background:var(--azul-fill)}
+.legenda span.atual::before{background:var(--laranja)}
+
+.eixo{margin-top:16px}
+.eixo-linha{display:flex;justify-content:space-between;gap:12px;font-size:.9rem;margin-bottom:6px}
+.eixo-linha b{font-weight:600;font-variant-numeric:tabular-nums}
+.apoio li{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-top:1px solid var(--line);font-size:.9rem}
+.apoio li:first-child{border-top:0;margin-top:8px}
+.apoio b{display:block;font-weight:600}
+.apoio span{color:var(--ink-2)}
+.apoio .iniciais{width:34px;height:34px;font-size:.75rem;background:var(--laranja-suave);color:var(--laranja-texto)}
+
+.tabela-rolagem{overflow-x:auto;margin:16px -22px -22px;border-top:1px solid var(--line)}
+table{width:100%;border-collapse:collapse;font-size:.9rem;min-width:880px}
+td .habs{min-width:250px}
+th,td{text-align:left;padding:13px 22px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+th{font-size:.8125rem;font-weight:600;color:var(--ink-2);background:var(--bg);white-space:nowrap}
+td.num{font-variant-numeric:tabular-nums}
+.aluno-nome{font-weight:600;white-space:nowrap}
+.mini{display:flex;align-items:center;gap:10px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.mini .barra{width:84px;height:8px;flex:none}
+.sit{display:inline-block;font-size:.8125rem;font-weight:600;padding:3px 10px;border-radius:999px;white-space:nowrap}
+.sit-apoio{background:var(--laranja-suave);color:var(--laranja-texto)}
+.sit-frente{background:var(--verde-suave);color:var(--verde-texto)}
+.sit-dia{background:var(--surface-2);color:var(--ink-2)}
+.tabela-pe{padding:14px 22px;font-size:.875rem;color:var(--ink-2)}
+
+.planos li{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between;padding:14px 0;border-top:1px solid var(--line)}
+.planos li:first-child{border-top:0;margin-top:6px}
+.planos b{display:block;font-weight:600}
+.planos span{font-size:.875rem;color:var(--ink-2)}
+.bloco{margin-top:20px}
+
+/* =========================================================
+   Responsivo
+   ========================================================= */
+@media (max-width:1180px){
+  .app-corpo{grid-template-columns:76px minmax(0,1fr) 310px}
+  .nav-item{justify-content:center;padding:12px 0}
+  .nav-item span{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+}
+@media (max-width:960px){
+  .topo-links{display:none}
+  .topo .btn{margin-left:auto}
+  .hero{padding-top:48px}
+  .hero-linha{grid-template-columns:minmax(0,1fr)}
+  .bancada{grid-template-columns:minmax(0,1fr);padding:22px;border-radius:22px}
+  .peca-visual{min-height:0}
+  .sec{padding:68px 0}
+  .dores-cab{display:none}
+  .dor{grid-template-columns:1fr;gap:16px}
+  .passos{grid-template-columns:1fr;gap:28px}
+  .passos::before{top:0;bottom:0;left:17px;right:auto;width:3px;height:auto}
+  .passos li{padding:4px 0 0 58px}
+  .escada{grid-template-columns:1fr;gap:16px;margin-top:40px}
+  .degrau{min-height:0;margin-left:calc((var(--n) - 1) * 14px)}
+  .coord{grid-template-columns:minmax(0,1fr);gap:36px}
+  .fechamento{padding:64px 0}
+  .fechamento .wrap{grid-template-columns:minmax(0,1fr);gap:36px}
+  .prof-grade{grid-template-columns:minmax(0,1fr)}
+
+  #aluno{overflow-y:auto}
+  body:has(#go-aluno:checked) #aluno{display:block}
+  .app-topo{grid-template-columns:auto 1fr;gap:12px 16px;padding:10px 16px}
+  .app-topo .trilha-prog{grid-column:1 / -1;grid-row:2;max-width:none}
+  .app-topo .perfil{justify-self:end}
+  #professor .app-topo{grid-template-columns:auto minmax(0,1fr) auto}
+  .escola{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .medalhas{display:none}
+  .app-corpo{display:block}
+  .app-nav{flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line);padding:8px 12px}
+  .nav-item{width:auto;flex:none;padding:9px 14px;white-space:nowrap}
+  .nav-item span{position:static;width:auto;height:auto;clip-path:none}
+  .app-main{overflow:visible;padding:20px 16px}
+  .app-tutor{border-left:0;border-top:1px solid var(--line)}
+  .tutor-msgs{overflow:visible}
+}
+@media (max-width:560px){
+  .proto-nome{display:none}
+  .proto-telas{margin-left:0}
+  .topo .wrap{gap:12px}
+  .topo .btn{padding:9px 12px;font-size:.75rem;min-width:0;white-space:normal;text-align:center}
+  .logo{font-size:1.15rem}
+  .logo small{display:none}
+  .hero-cta .btn{width:100%;white-space:normal;text-align:center}
+  .perfil div{display:none}
+  .colunas{gap:5px}
+  .col span{font-size:.6875rem}
+  .painel{padding:18px}
+  .tabela-rolagem{margin:16px -18px -18px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none !important;transition:none !important}
+  #landing{scroll-behavior:auto}
+  .fase-b{opacity:0}
+  .l.marca-a{background:rgba(0,200,83,.2);box-shadow:inset 3px 0 0 #00C853}
+}
+</style>
+</head>
+<body>
+
+<!-- Barra do protótipo: alterna entre as três telas -->
+<div class="proto">
+  <span class="proto-nome">Protótipo RoboMind</span>
+  <div class="proto-telas" role="radiogroup" aria-label="Tela do protótipo">
+    <label><input class="vh" type="radio" name="tela" id="go-landing" checked>Site para escolas</label>
+    <label><input class="vh" type="radio" name="tela" id="go-aluno">Dashboard do aluno</label>
+    <label><input class="vh" type="radio" name="tela" id="go-professor">Painel do professor</label>
+  </div>
+</div>
+
+<!-- Moldura de chip usada nas medalhas -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="logo-robo" viewBox="8 3 84 62">
+    <rect x="11" y="37" width="7" height="13" rx="2" fill="var(--logo-visor,#0B2E66)"/>
+    <rect x="82" y="37" width="7" height="13" rx="2" fill="var(--logo-visor,#0B2E66)"/>
+    <path d="M41 25 H27 L20 32 V55 L27 62 H40 M59 25 H73 L80 32 V55 L73 62 H60" fill="none" stroke="#00C853" stroke-width="5.5" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M50 12 V30" stroke="#00C853" stroke-width="4.5" stroke-linecap="round"/>
+    <circle cx="50" cy="10" r="5.5" fill="#00C853"/>
+    <rect x="28" y="30" width="44" height="25" rx="12.5" fill="var(--logo-visor,#0B2E66)"/>
+  </symbol>
+  <symbol id="chip" viewBox="0 0 72 72">
+    <path d="M24 5v9M36 5v9M48 5v9M24 58v9M36 58v9M48 58v9M5 24h9M5 36h9M5 48h9M58 24h9M58 36h9M58 48h9" stroke="currentColor" stroke-width="4" stroke-linecap="round" opacity=".5"/>
+    <rect x="12" y="12" width="48" height="48" rx="11" fill="currentColor"/>
+  </symbol>
+</svg>
+
+<!-- =====================================================
+     TELA 1 — SITE PARA ESCOLAS (B2B)
+     ===================================================== -->
+<div class="screen" id="landing">
+
+  <header class="topo">
+    <div class="wrap">
+      <a class="logo" href="#inicio" aria-label="RoboMind EdTech"><svg class="logo-icone" aria-hidden="true"><use href="#logo-robo"/></svg><span><span class="logo-robo">Robo</span><span class="logo-mind">Mind</span></span><small>EdTech</small></a>
+      <nav class="topo-links" aria-label="Seções">
+        <a href="#problema">O problema</a>
+        <a href="#como-funciona">Como funciona</a>
+        <a href="#trilha">Trilha BNCC</a>
+        <a href="#preco">Preço</a>
+      </nav>
+      <a class="btn btn-laranja btn-p" href="#preco">Agendar aula experimental</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" id="inicio">
+      <div class="wrap">
+        <h1>Descomplicando a robótica escolar: a BNCC da Computação na prática da sua escola.</h1>
+        <div class="hero-linha">
+          <p>Kits Arduino, plataforma de aulas e um tutor com inteligência artificial que ajuda cada aluno a encontrar o próprio erro. Uma assinatura só, pronta para o Fundamental II e o Ensino Médio.</p>
+          <div class="hero-cta">
+            <a class="btn btn-laranja" href="#preco">Agendar aula experimental gratuita</a>
+            <label class="btn btn-ghost" for="go-aluno">Ver a plataforma do aluno</label>
+          </div>
+        </div>
+
+        <!-- A bancada: as três partes do produto funcionando juntas -->
+        <div class="bancada">
+
+          <article class="peca peca-kit">
+            <div class="peca-visual">
+              <svg class="kit-svg" viewBox="0 0 520 330" role="img" aria-label="Placa Arduino ligada por um jumper laranja a um LED verde que pisca na protoboard">
+                <defs>
+                  <pattern id="furos" width="14" height="14" patternUnits="userSpaceOnUse">
+                    <circle cx="7" cy="7" r="1.9" fill="#B5AE9B"/>
+                  </pattern>
+                  <radialGradient id="brilho">
+                    <stop offset="0" stop-color="#00E676" stop-opacity=".85"/>
+                    <stop offset="1" stop-color="#00E676" stop-opacity="0"/>
+                  </radialGradient>
+                </defs>
+
+                <!-- protoboard -->
+                <rect x="352" y="14" width="154" height="210" rx="10" fill="#F4F1E6"/>
+                <rect x="364" y="28" width="126" height="182" fill="url(#furos)"/>
+                <rect x="352" y="112" width="154" height="14" fill="#E3DECE"/>
+
+                <!-- placa -->
+                <rect x="14" y="128" width="300" height="188" rx="14" fill="#0047AB" stroke="#2D6FD6" stroke-width="1.5"/>
+                <rect x="0" y="150" width="58" height="44" rx="4" fill="#C7CEDA"/>
+                <rect x="4" y="250" width="52" height="46" rx="5" fill="#15171C"/>
+                <rect x="74" y="140" width="16" height="16" rx="3" fill="#C7CEDA"/>
+                <circle cx="82" cy="148" r="4.5" fill="#FF6D00"/>
+                <rect x="74" y="206" width="32" height="12" rx="6" fill="#C7CEDA"/>
+                <!-- barra de pinos superior -->
+                <rect x="98" y="138" width="202" height="16" rx="3" fill="#15171C"/>
+                <line x1="108" y1="146" x2="290" y2="146" stroke="#5B6372" stroke-width="5" stroke-linecap="round" stroke-dasharray="0 14"/>
+                <text x="150" y="168" font-size="8" fill="#C9DBFF" text-anchor="middle">13</text>
+                <!-- LED "L" da própria placa, também no pino 13 -->
+                <rect x="145" y="176" width="10" height="6" rx="1.5" fill="#7A3A0A"/>
+                <rect class="fase-a" x="145" y="176" width="10" height="6" rx="1.5" fill="#FF8A2B"/>
+                <text x="161" y="182" font-size="8" fill="#C9DBFF">L</text>
+                <text x="196" y="200" font-size="13" font-weight="600" fill="#FFFFFF" style="font-family:Montserrat,sans-serif">RoboMind</text>
+                <!-- microcontrolador -->
+                <line x1="138" y1="220" x2="272" y2="220" stroke="#C7CEDA" stroke-width="4" stroke-dasharray="4 6"/>
+                <line x1="138" y1="258" x2="272" y2="258" stroke="#C7CEDA" stroke-width="4" stroke-dasharray="4 6"/>
+                <rect x="130" y="222" width="150" height="34" rx="3" fill="#15171C"/>
+                <circle cx="140" cy="239" r="3" fill="#3A3F4B"/>
+                <!-- barra de pinos inferior -->
+                <text x="260" y="284" font-size="8" fill="#C9DBFF" text-anchor="middle">GND</text>
+                <rect x="152" y="290" width="148" height="16" rx="3" fill="#15171C"/>
+                <line x1="162" y1="298" x2="288" y2="298" stroke="#5B6372" stroke-width="5" stroke-linecap="round" stroke-dasharray="0 14"/>
+
+                <!-- jumpers -->
+                <path d="M150 146 C150 20 395 -20 427 91" fill="none" stroke="#FF6D00" stroke-width="5" stroke-linecap="round"/>
+                <path d="M260 298 C300 240 400 260 441 175" fill="none" stroke="#6FA3FF" stroke-width="5" stroke-linecap="round"/>
+                <circle cx="150" cy="146" r="3.5" fill="#F2F4F8"/><circle cx="427" cy="91" r="3.5" fill="#F2F4F8"/>
+                <circle cx="260" cy="298" r="3.5" fill="#F2F4F8"/><circle cx="441" cy="175" r="3.5" fill="#F2F4F8"/>
+
+                <!-- resistor -->
+                <line x1="441" y1="91" x2="441" y2="147" stroke="#8C8C8C" stroke-width="2"/>
+                <rect x="436" y="104" width="10" height="30" rx="4" fill="#D9B777"/>
+                <rect x="436" y="110" width="10" height="3" fill="#C62828"/>
+                <rect x="436" y="117" width="10" height="3" fill="#C62828"/>
+                <rect x="436" y="124" width="10" height="3" fill="#6D4C41"/>
+
+                <!-- LED -->
+                <line x1="428" y1="50" x2="427" y2="64" stroke="#8C8C8C" stroke-width="2"/>
+                <line x1="440" y1="50" x2="441" y2="64" stroke="#8C8C8C" stroke-width="2"/>
+                <circle class="fase-a" cx="434" cy="40" r="38" fill="url(#brilho)"/>
+                <circle cx="434" cy="40" r="13" fill="#0B6B36"/>
+                <circle class="fase-a" cx="434" cy="40" r="13" fill="#00E676"/>
+                <circle cx="429" cy="35" r="3.5" fill="#FFFFFF" opacity=".55"/>
+              </svg>
+            </div>
+            <div class="peca-legenda">
+              <h2>Kit Arduino modular</h2>
+              <p>Sensores, atuadores e guias de montagem para cada projeto. Manutenção e reposição entram no contrato.</p>
+            </div>
+          </article>
+
+          <article class="peca peca-plataforma">
+            <div class="peca-visual">
+              <div class="codigo" aria-label="Código Blink em Arduino">
+                <span class="l"><span class="c">// Blink: o primeiro programa do kit</span></span>
+                <span class="l"><span class="k">void</span> <span class="f">setup</span>() {</span>
+                <span class="l">  <span class="f">pinMode</span>(<span class="n">13</span>, <span class="n">OUTPUT</span>);</span>
+                <span class="l">}</span>
+                <span class="l"> </span>
+                <span class="l"><span class="k">void</span> <span class="f">loop</span>() {</span>
+                <span class="l marca-a">  <span class="f">digitalWrite</span>(<span class="n">13</span>, <span class="n">HIGH</span>);</span>
+                <span class="l marca-a">  <span class="f">delay</span>(<span class="n">1000</span>);</span>
+                <span class="l marca-b">  <span class="f">digitalWrite</span>(<span class="n">13</span>, <span class="n">LOW</span>);</span>
+                <span class="l marca-b">  <span class="f">delay</span>(<span class="n">1000</span>);</span>
+                <span class="l">}</span>
+              </div>
+            </div>
+            <div class="peca-legenda">
+              <h2>Plataforma com trilhas da BNCC</h2>
+              <p>Videoaulas, editor de código e desafios organizados por ano letivo, cada aula ligada a uma habilidade.</p>
+            </div>
+          </article>
+
+          <article class="peca peca-tutor">
+            <div class="peca-visual">
+              <div class="conversa">
+                <div class="conversa-quem">
+                  <svg class="robo" viewBox="0 0 48 48" aria-hidden="true"><rect x="9" y="15" width="30" height="24" rx="6" fill="none" stroke="#00C853" stroke-width="2.5"/><path d="M24 15V8M19 32h10" stroke="#00C853" stroke-width="2.5" stroke-linecap="round"/><circle cx="24" cy="7" r="2.5" fill="#00C853"/><circle cx="18" cy="25" r="3" fill="#FF6D00"/><circle cx="30" cy="25" r="3" fill="#FF6D00"/></svg>
+                  Tutor RoboMind
+                </div>
+                <p class="fala fala-aluno">Piscou! Dá pra piscar mais rápido?</p>
+                <p class="fala fala-tutor">Dá sim. Qual linha decide quanto tempo o LED fica aceso? Mexe nela e me conta o que aconteceu.</p>
+              </div>
+            </div>
+            <div class="peca-legenda">
+              <h2>Tutor com IA</h2>
+              <p>Lê o código do aluno, aponta onde olhar e dá a dica. Quem corrige é o aluno.</p>
+            </div>
+          </article>
+
+        </div>
+      </div>
+    </section>
+
+    <section class="sec" id="problema">
+      <div class="wrap">
+        <h2 class="sec-titulo">A BNCC da Computação chegou. A aula prática de robótica ainda não.</h2>
+        <p class="sec-intro">Sem estrutura, a escola acaba em aula só expositiva, consultoria cara ou vídeos soltos do YouTube. Estes são os três pontos em que o projeto costuma parar.</p>
+
+        <div class="dores">
+          <div class="dores-cab"><span>O que trava a escola hoje</span><span>O que muda com a RoboMind</span></div>
+          <div class="dor">
+            <div>
+              <h3>Kits fechados e caros</h3>
+              <p>Os kits das grandes editoras custam alto e não deixam a escola trocar, repor ou combinar peças.</p>
+            </div>
+            <div class="resposta"><p>Componentes Arduino modulares e acessíveis, com manutenção e reposição incluídas na assinatura.</p></div>
+          </div>
+          <div class="dor">
+            <div>
+              <h3>Professor sem formação em programação</h3>
+              <p>Quem dá aula de informática ou ciências já está sobrecarregado e raramente trabalhou com lógica e hardware.</p>
+            </div>
+            <div class="resposta"><p>Planos de aula prontos, formação durante o ano e um tutor de IA que atende os alunos enquanto o professor circula pela sala.</p></div>
+          </div>
+          <div class="dor">
+            <div>
+              <h3>Material que não conversa com a BNCC</h3>
+              <p>Kits importados chegam sem sequência didática, e a coordenação não tem como comprovar as competências trabalhadas.</p>
+            </div>
+            <div class="resposta"><p>Cada aula mapeada habilidade por habilidade, com relatório por turma e por aluno.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="sec sec-faixa" id="como-funciona">
+      <div class="wrap">
+        <h2 class="sec-titulo">Da primeira conversa à renovação, em quatro passos.</h2>
+        <ol class="passos">
+          <li>
+            <h3>Aula experimental gratuita</h3>
+            <p>Levamos um kit e a plataforma para uma aula com uma turma da sua escola.</p>
+          </li>
+          <li>
+            <h3>Contrato e entrega</h3>
+            <p>Com o contrato anual assinado, os kits chegam por transportadora e cadastramos turmas e professores.</p>
+          </li>
+          <li>
+            <h3>Aulas com kit, vídeo e tutor</h3>
+            <p>O aluno monta o circuito, programa na plataforma e chama o tutor quando o código não funciona.</p>
+          </li>
+          <li>
+            <h3>Relatórios e formação</h3>
+            <p>A coordenação acompanha as habilidades atingidas e os professores recebem treinamento ao longo do ano.</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="sec" id="trilha">
+      <div class="wrap">
+        <h2 class="sec-titulo">Uma trilha que sobe junto com a turma.</h2>
+        <p class="sec-intro">Cada ano letivo termina com um projeto montado e programado pelos alunos. O que se aprende em um degrau é usado no seguinte.</p>
+        <ol class="escada">
+          <li class="degrau degrau-azul" style="--n:1"><span class="ano">6º ano</span><strong>Semáforo com LEDs</strong><span>Sequência e repetição</span></li>
+          <li class="degrau degrau-azul" style="--n:2"><span class="ano">7º ano</span><strong>Alarme com sensor de presença</strong><span>Condicionais e entradas</span></li>
+          <li class="degrau degrau-verde" style="--n:3"><span class="ano">8º ano</span><strong>Robô que desvia de obstáculos</strong><span>Funções, motores e sensores</span></li>
+          <li class="degrau degrau-verde" style="--n:4"><span class="ano">9º ano</span><strong>Irrigador automático</strong><span>Leitura de dados e automação</span></li>
+          <li class="degrau degrau-laranja" style="--n:5"><span class="ano">Ensino Médio</span><strong>Projeto autoral</strong><span>Um problema real da escola ou do bairro</span></li>
+        </ol>
+        <p class="eixos">As aulas cobrem os três eixos da BNCC Computação: pensamento computacional, mundo digital e cultura digital.</p>
+      </div>
+    </section>
+
+    <section class="sec sec-faixa" id="coordenacao">
+      <div class="wrap coord">
+        <div>
+          <h2 class="sec-titulo">A coordenação vê o que cada turma já aprendeu.</h2>
+          <p class="sec-intro">O painel do professor mostra quem concluiu cada desafio e quais habilidades da BNCC foram atingidas em cada aula.</p>
+          <ul class="checks">
+            <li>Relatório de habilidades por aluno e por turma</li>
+            <li>Planos de aula em PDF, prontos para a aula presencial</li>
+            <li>Formação contínua e suporte aos professores por WhatsApp</li>
+            <li>Dados de estudantes tratados conforme a LGPD</li>
+          </ul>
+          <label class="btn btn-azul" for="go-professor">Abrir o painel do professor</label>
+        </div>
+        <div class="previa">
+          <h3>8º ano B, Robótica</h3>
+          <p>Habilidades atingidas até a Aula 6</p>
+          <div class="previa-linha"><b>Ana Clara Ribeiro</b><div class="habs"><span class="hab">EF08CO01</span><span class="hab">EF08CO02</span><span class="hab">EF08CO04</span></div></div>
+          <div class="previa-linha"><b>Bruno Tavares</b><div class="habs"><span class="hab">EF08CO01</span><span class="hab">EF08CO02</span><span class="hab">EF08CO04</span></div></div>
+          <div class="previa-linha"><b>Camila Nogueira</b><div class="habs"><span class="hab">EF08CO01</span><span class="hab">EF08CO02</span></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="fechamento" id="preco">
+      <div class="wrap">
+        <div>
+          <h2 class="sec-titulo">De R$ 35 a R$ 50 por aluno, por mês.</h2>
+          <p>Assinatura anual por aluno cadastrado. O valor varia conforme o número de alunos da escola.</p>
+          <ul class="checks">
+            <li>Kits Arduino para as turmas, com manutenção</li>
+            <li>Plataforma para alunos e professores</li>
+            <li>Tutor com IA em todas as aulas</li>
+            <li>Formação de professores e planos de aula</li>
+          </ul>
+        </div>
+        <form class="form" aria-labelledby="form-titulo">
+          <h3 id="form-titulo">Agende uma aula experimental gratuita</h3>
+          <label class="campo">Seu nome<input type="text" autocomplete="name" placeholder="Marina Couto"></label>
+          <label class="campo">Escola<input type="text" autocomplete="organization" placeholder="Colégio Horizonte"></label>
+          <label class="campo">E-mail de trabalho<input type="email" autocomplete="email" placeholder="marina@colegiohorizonte.com.br"></label>
+          <label class="campo">Alunos do 6º ano ao Ensino Médio
+            <select>
+              <option>Até 150</option>
+              <option>De 151 a 400</option>
+              <option>Mais de 400</option>
+            </select>
+          </label>
+          <button class="btn btn-laranja" type="button">Agendar aula experimental gratuita</button>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer class="rodape">
+    <div class="wrap">
+      <a class="logo" href="#inicio" aria-label="RoboMind EdTech"><svg class="logo-icone" aria-hidden="true"><use href="#logo-robo"/></svg><span><span class="logo-robo">Robo</span><span class="logo-mind">Mind</span></span><small>EdTech</small></a>
+      <p>Aprenda robótica, programe o futuro e crie sem limites com IA.</p>
+      <nav class="rodape-redes" aria-label="Redes sociais">
+        <a href="#inicio">LinkedIn</a><a href="#inicio">Instagram</a><a href="#inicio">TikTok</a>
+      </nav>
+    </div>
+  </footer>
+</div>
+
+<!-- =====================================================
+     TELA 2 — DASHBOARD DO ALUNO
+     ===================================================== -->
+<div class="screen" id="aluno">
+
+  <header class="app-topo">
+    <span class="logo" aria-label="RoboMind"><svg class="logo-icone" aria-hidden="true"><use href="#logo-robo"/></svg><span><span class="logo-robo">Robo</span><span class="logo-mind">Mind</span></span></span>
+    <div class="trilha-prog">
+      <div class="trilha-prog-linha"><b>Trilha BNCC do 8º ano</b><span>5 de 8 aulas concluídas</span></div>
+      <div class="barra" role="progressbar" aria-label="Progresso na trilha" aria-valuemin="0" aria-valuemax="8" aria-valuenow="5"><i style="width:62.5%"></i></div>
+    </div>
+    <div class="perfil">
+      <span class="medalhas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="15" r="5"/><path d="M8.5 3l3.5 7 3.5-7"/></svg>7 medalhas</span>
+      <div><b>Lucas Ferraz</b><span>8º ano B</span></div>
+      <span class="iniciais" aria-hidden="true">LF</span>
+    </div>
+  </header>
+
+  <div class="app-corpo">
+
+    <nav class="app-nav" aria-label="Menu do aluno">
+      <label class="nav-item nav-pai">
+        <input class="vh" type="radio" name="vista" id="v-aulas">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10 9.5v5l4.5-2.5z"/></svg><span>Minhas Aulas</span>
+      </label>
+      <label class="nav-item nav-sub">
+        <input class="vh" type="radio" name="vista" id="v-aula" checked>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5l10.5 6.5L8 18.5z"/></svg><span>Aula 6</span>
+      </label>
+      <label class="nav-item nav-sub">
+        <input class="vh" type="radio" name="vista" id="v-quiz">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 6h10M10 12h10M10 18h10M3.5 6l1.2 1.2L7 4.9M3.5 12l1.2 1.2L7 10.9M3.5 18l1.2 1.2L7 16.9"/></svg><span>Questionário</span>
+      </label>
+      <label class="nav-item">
+        <input class="vh" type="radio" name="vista" id="v-projetos">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/></svg><span>Meus Projetos Arduino</span>
+      </label>
+      <label class="nav-item">
+        <input class="vh" type="radio" name="vista" id="v-desafios">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13.5 6l-3 12"/></svg><span>Desafios de Código</span>
+      </label>
+      <label class="nav-item">
+        <input class="vh" type="radio" name="vista" id="v-medalhas">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="15" r="5"/><path d="M8.5 3l3.5 7 3.5-7"/></svg><span>Minhas Medalhas</span>
+      </label>
+    </nav>
+
+    <main class="app-main">
+
+      <!-- ===== Aula aberta: vídeo, montagem e código ===== -->
+      <section class="vista vista-aula">
+      <div class="aula-cab">
+        <div>
+          <h1>Aula 6: LED de status do robô</h1>
+          <p>Faça o robô avisar que está ligado antes de sair andando.</p>
+        </div>
+        <label class="btn btn-ghost btn-p" for="v-quiz">Fazer o questionário</label>
+      </div>
+
+      <div class="aula-grade">
+        <div>
+          <div class="video">
+            <svg viewBox="0 0 640 360" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Vídeo da aula: robô de duas rodas com o LED de status apagado">
+              <rect width="640" height="360" fill="#0A1D42"/>
+              <rect x="0" y="296" width="640" height="64" fill="#06132E"/>
+              <!-- chassi -->
+              <rect x="180" y="212" width="270" height="52" rx="14" fill="#0047AB" stroke="#2D6FD6" stroke-width="2"/>
+              <rect x="214" y="180" width="150" height="32" rx="5" fill="#0B56C9"/>
+              <line x1="226" y1="190" x2="352" y2="190" stroke="#15171C" stroke-width="7" stroke-linecap="round" stroke-dasharray="0 12"/>
+              <!-- cabeça com sensor ultrassônico -->
+              <rect x="384" y="128" width="96" height="62" rx="12" fill="#0A1D42" stroke="#00C853" stroke-width="4"/>
+              <circle cx="414" cy="159" r="13" fill="#FF6D00"/><circle cx="450" cy="159" r="13" fill="#FF6D00"/>
+              <circle cx="414" cy="159" r="5" fill="#7A3A0A"/><circle cx="450" cy="159" r="5" fill="#7A3A0A"/>
+              <rect x="420" y="190" width="24" height="22" fill="#00C853"/>
+              <!-- LED de status apagado -->
+              <line x1="246" y1="166" x2="246" y2="182" stroke="#8C8C8C" stroke-width="3"/>
+              <line x1="258" y1="166" x2="258" y2="182" stroke="#8C8C8C" stroke-width="3"/>
+              <circle cx="252" cy="154" r="15" fill="#33415F"/>
+              <circle cx="252" cy="154" r="26" fill="none" stroke="#FF6D00" stroke-width="2.5" stroke-dasharray="5 6"/>
+              <!-- rodas -->
+              <circle cx="238" cy="270" r="38" fill="#15171C"/><circle cx="238" cy="270" r="14" fill="#C7CEDA"/>
+              <circle cx="392" cy="270" r="38" fill="#15171C"/><circle cx="392" cy="270" r="14" fill="#C7CEDA"/>
+            </svg>
+            <div class="video-tempo">
+              <button class="video-play" type="button" aria-label="Reproduzir vídeo">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3l16 9-16 9z" fill="#0047AB"/></svg>
+              </button>
+              <span>2:10</span>
+              <div class="barra" aria-hidden="true"><i style="width:25%"></i></div>
+              <span>8:45</span>
+            </div>
+          </div>
+
+          <section class="montagem" aria-labelledby="montagem-titulo">
+            <h2 id="montagem-titulo">Passos da montagem</h2>
+            <label class="passo-check"><input type="checkbox" checked><span>Encaixe o LED na protoboard, com a perna maior para a esquerda</span></label>
+            <label class="passo-check"><input type="checkbox" checked><span>Ligue o resistor de 220 Ω entre a perna menor do LED e o GND</span></label>
+            <label class="passo-check"><input type="checkbox" checked><span>Leve o jumper laranja do pino 13 até a perna maior do LED</span></label>
+            <label class="passo-check"><input type="checkbox"><span>Envie o código para a placa e veja o LED piscar</span></label>
+          </section>
+        </div>
+
+        <div class="editor">
+          <div class="editor-topo">
+            <span class="aba">led_status.ino</span>
+            <div class="editor-acoes">
+              <button class="btn-editor" type="button">Verificar</button>
+              <button class="btn-editor enviar" type="button">Enviar para a placa</button>
+            </div>
+          </div>
+          <div class="codigo" aria-label="Seu código">
+            <span class="l"><span class="c">// Aula 6: LED de status do robô</span></span>
+            <span class="l"><span class="k">const int</span> LED_STATUS = <span class="n">13</span>;</span>
+            <span class="l"> </span>
+            <span class="l suspeita"><span class="k">void</span> <span class="f">setup</span>() {</span>
+            <span class="l suspeita">  Serial.<span class="f">begin</span>(<span class="n">9600</span>);</span>
+            <span class="l suspeita">}</span>
+            <span class="l"> </span>
+            <span class="l"><span class="k">void</span> <span class="f">loop</span>() {</span>
+            <span class="l">  <span class="f">digitalWrite</span>(LED_STATUS, <span class="n">HIGH</span>);</span>
+            <span class="l">  <span class="f">delay</span>(<span class="n">500</span>);</span>
+            <span class="l">  <span class="f">digitalWrite</span>(LED_STATUS, <span class="n">LOW</span>);</span>
+            <span class="l">  <span class="f">delay</span>(<span class="n">500</span>);</span>
+            <span class="l">}</span>
+          </div>
+          <div class="console" aria-label="Console">
+            <div class="ok">Verificação concluída: nenhum erro de sintaxe.</div>
+            <div>Código enviado para a placa pela porta COM3.</div>
+          </div>
+        </div>
+      </div>
+      </section>
+
+      <!-- ===== Minhas Aulas: trilha do ano ===== -->
+      <section class="vista vista-aulas">
+        <div class="aula-cab">
+          <div>
+            <h1>Minhas aulas</h1>
+            <p>Trilha do 8º ano: do primeiro Blink ao robô que desvia de obstáculos.</p>
+          </div>
+        </div>
+        <ol class="trilha-lista">
+          <li class="aula-item feita">
+            <div><h2>Olá, Arduino: o primeiro Blink</h2><p>Sequência de comandos</p></div>
+            <div class="aula-lado">Questionário: 5 de 5<span class="sit sit-frente">Concluída</span></div>
+          </li>
+          <li class="aula-item feita">
+            <div><h2>Semáforo: uma sequência de LEDs</h2><p>Repetição e tempo</p></div>
+            <div class="aula-lado">Questionário: 4 de 5<span class="sit sit-frente">Concluída</span></div>
+          </li>
+          <li class="aula-item feita">
+            <div><h2>Botões e decisões</h2><p>Condicionais com if e else</p></div>
+            <div class="aula-lado">Questionário: 5 de 5<span class="sit sit-frente">Concluída</span></div>
+          </li>
+          <li class="aula-item feita">
+            <div><h2>Sons com o buzzer</h2><p>Funções</p></div>
+            <div class="aula-lado">Questionário: 4 de 5<span class="sit sit-frente">Concluída</span></div>
+          </li>
+          <li class="aula-item feita">
+            <div><h2>Potenciômetro e brilho do LED</h2><p>Leitura analógica e PWM</p></div>
+            <div class="aula-lado">Questionário: 3 de 5<span class="sit sit-frente">Concluída</span></div>
+          </li>
+          <li class="aula-item atual">
+            <div><h2>LED de status do robô</h2><p>Saídas digitais no robô</p></div>
+            <div class="aula-lado"><span class="sit sit-apoio">Em andamento</span></div>
+            <ul class="etapas">
+              <li><b>Vídeo</b>Parou em 2:10 de 8:45</li>
+              <li><b>Montagem</b>3 de 4 passos</li>
+              <li><b>Código</b>Enviado, LED ainda apagado</li>
+              <li><b>Questionário</b>5 perguntas, sem resposta</li>
+            </ul>
+            <div class="aula-botoes">
+              <label class="btn btn-laranja btn-p" for="v-aula">Continuar a aula</label>
+              <label class="btn btn-ghost btn-p" for="v-quiz">Fazer o questionário</label>
+            </div>
+          </li>
+          <li class="aula-item travada">
+            <div><h2>Motores e ponte H</h2><p>Libera quando você concluir a Aula 6</p></div>
+          </li>
+          <li class="aula-item travada">
+            <div><h2>Sensor ultrassônico e desvio de obstáculos</h2><p>Libera depois da Aula 7</p></div>
+          </li>
+        </ol>
+      </section>
+
+      <!-- ===== Questionário da aula ===== -->
+      <section class="vista vista-quiz">
+        <form class="quiz" aria-labelledby="quiz-titulo">
+          <div class="aula-cab">
+            <div>
+              <h1 id="quiz-titulo">Questionário da Aula 6</h1>
+              <p>Cinco perguntas sobre o LED de status. Não tem tempo e você pode refazer.</p>
+            </div>
+          </div>
+          <div class="quiz-segs" aria-hidden="true"><i class="s1"></i><i class="s2"></i><i class="s3"></i><i class="s4"></i><i class="s5"></i></div>
+
+          <div class="q" role="radiogroup" aria-labelledby="q1-t">
+            <h2 id="q1-t"><span class="q-n">1</span><span>Quantas vezes o Arduino executa o que está dentro do <code>setup()</code>?</span></h2>
+            <div class="ops">
+              <label class="op"><input type="radio" name="q1"><span>Uma vez a cada segundo</span></label>
+              <label class="op"><input type="radio" name="q1" class="certa"><span>Uma vez só, quando a placa liga ou reinicia</span></label>
+              <label class="op"><input type="radio" name="q1"><span>Sem parar, enquanto houver energia</span></label>
+              <label class="op"><input type="radio" name="q1"><span>Só quando o <code>loop()</code> termina</span></label>
+            </div>
+            <p class="q-exp">O <code>setup()</code> roda uma vez, no começo. Quem repete sem parar é o <code>loop()</code>.</p>
+          </div>
+
+          <div class="q" role="radiogroup" aria-labelledby="q2-t">
+            <h2 id="q2-t"><span class="q-n">2</span><span>O que muda quando um pino é configurado como <code>OUTPUT</code>?</span></h2>
+            <div class="ops">
+              <label class="op"><input type="radio" name="q2" class="certa"><span>O Arduino passa a enviar energia por ele</span></label>
+              <label class="op"><input type="radio" name="q2"><span>O Arduino passa a ler um sensor por ele</span></label>
+              <label class="op"><input type="radio" name="q2"><span>O pino fica desligado até a placa reiniciar</span></label>
+              <label class="op"><input type="radio" name="q2"><span>O pino começa a piscar sozinho</span></label>
+            </div>
+            <p class="q-exp"><code>OUTPUT</code> é saída: o Arduino controla o pino e pode ligar um LED, um motor ou um buzzer. Para ler botões e sensores, o pino é <code>INPUT</code>.</p>
+          </div>
+
+          <div class="q" role="radiogroup" aria-labelledby="q3-t">
+            <h2 id="q3-t"><span class="q-n">3</span><span>O que a linha <code>digitalWrite(13, HIGH);</code> faz?</span></h2>
+            <div class="ops">
+              <label class="op"><input type="radio" name="q3"><span>Espera 13 milissegundos</span></label>
+              <label class="op"><input type="radio" name="q3"><span>Lê se o pino 13 está ligado</span></label>
+              <label class="op"><input type="radio" name="q3" class="certa"><span>Liga o pino 13, com 5 V</span></label>
+              <label class="op"><input type="radio" name="q3"><span>Apaga o LED do pino 13</span></label>
+            </div>
+            <p class="q-exp"><code>HIGH</code> liga o pino, com 5 V na placa do kit. <code>LOW</code> desliga e deixa o pino em 0 V.</p>
+          </div>
+
+          <div class="q" role="radiogroup" aria-labelledby="q4-t">
+            <h2 id="q4-t"><span class="q-n">4</span><span>Com <code>delay(500);</code>, quanto tempo o programa espera?</span></h2>
+            <div class="ops">
+              <label class="op"><input type="radio" name="q4"><span>5 segundos</span></label>
+              <label class="op"><input type="radio" name="q4" class="certa"><span>Meio segundo</span></label>
+              <label class="op"><input type="radio" name="q4"><span>500 segundos</span></label>
+              <label class="op"><input type="radio" name="q4"><span>50 milissegundos</span></label>
+            </div>
+            <p class="q-exp">O <code>delay</code> conta em milissegundos. 1000 ms são 1 segundo, então 500 ms são meio segundo.</p>
+          </div>
+
+          <div class="q" role="radiogroup" aria-labelledby="q5-t">
+            <h2 id="q5-t"><span class="q-n">5</span><span>Para que serve o resistor de 220 Ω ligado ao LED?</span></h2>
+            <div class="ops">
+              <label class="op"><input type="radio" name="q5"><span>Faz o LED piscar sozinho</span></label>
+              <label class="op"><input type="radio" name="q5"><span>Aumenta o brilho do LED</span></label>
+              <label class="op"><input type="radio" name="q5"><span>Guarda energia para quando a placa desligar</span></label>
+              <label class="op"><input type="radio" name="q5" class="certa"><span>Limita a corrente para o LED não queimar</span></label>
+            </div>
+            <p class="q-exp">Sem o resistor passa corrente demais pelo LED, e ele pode queimar. O resistor segura essa corrente.</p>
+          </div>
+
+          <div class="quiz-pe">
+            <p class="quiz-cont" aria-live="polite"><span>Responda todas para enviar.</span></p>
+            <label class="btn btn-verde btn-enviar"><input class="vh" type="checkbox" id="quiz-enviado">Enviar respostas</label>
+          </div>
+
+          <div class="quiz-resultado" role="status">
+            <h2>Você acertou <span class="acertos"></span>.</h2>
+            <p>As respostas certas estão marcadas em verde, com a explicação embaixo de cada pergunta.</p>
+            <div class="quiz-resultado-acoes">
+              <button class="btn btn-claro" type="reset">Refazer questionário</button>
+              <label class="btn btn-verde" for="v-aula">Voltar para a aula</label>
+            </div>
+          </div>
+        </form>
+      </section>
+
+      <!-- ===== Meus Projetos Arduino ===== -->
+      <section class="vista vista-projetos">
+        <div class="aula-cab">
+          <div>
+            <h1>Meus projetos Arduino</h1>
+            <p>Cada projeto guarda o código, a lista de peças e o passo a passo da montagem.</p>
+          </div>
+        </div>
+
+        <article class="proj-atual">
+          <div class="proj-foto">
+            <svg viewBox="150 96 360 228" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Robô de duas rodas com o LED de status apagado">
+              <rect x="150" y="96" width="360" height="228" fill="#0A1D42"/>
+              <rect x="150" y="296" width="360" height="28" fill="#06132E"/>
+              <rect x="180" y="212" width="270" height="52" rx="14" fill="#0047AB" stroke="#2D6FD6" stroke-width="2"/>
+              <rect x="214" y="180" width="150" height="32" rx="5" fill="#0B56C9"/>
+              <line x1="226" y1="190" x2="352" y2="190" stroke="#15171C" stroke-width="7" stroke-linecap="round" stroke-dasharray="0 12"/>
+              <rect x="384" y="128" width="96" height="62" rx="12" fill="#0A1D42" stroke="#00C853" stroke-width="4"/>
+              <circle cx="414" cy="159" r="13" fill="#FF6D00"/><circle cx="450" cy="159" r="13" fill="#FF6D00"/>
+              <circle cx="414" cy="159" r="5" fill="#7A3A0A"/><circle cx="450" cy="159" r="5" fill="#7A3A0A"/>
+              <rect x="420" y="190" width="24" height="22" fill="#00C853"/>
+              <line x1="246" y1="166" x2="246" y2="182" stroke="#8C8C8C" stroke-width="3"/>
+              <line x1="258" y1="166" x2="258" y2="182" stroke="#8C8C8C" stroke-width="3"/>
+              <circle cx="252" cy="154" r="15" fill="#33415F"/>
+              <circle cx="238" cy="270" r="38" fill="#15171C"/><circle cx="238" cy="270" r="14" fill="#C7CEDA"/>
+              <circle cx="392" cy="270" r="38" fill="#15171C"/><circle cx="392" cy="270" r="14" fill="#C7CEDA"/>
+            </svg>
+          </div>
+          <div>
+            <span class="sit sit-apoio">Em montagem</span>
+            <h2>Robô desviador: LED de status</h2>
+            <p>Primeira parte do robô do 8º ano. O LED avisa que a placa está ligada antes de os motores entrarem.</p>
+            <ul class="pecas" aria-label="Peças usadas">
+              <li>Placa Arduino</li><li>LED verde</li><li>Resistor de 220 Ω</li><li>2 jumpers</li>
+            </ul>
+            <div class="proj-prog"><div class="barra" aria-hidden="true"><i style="width:75%"></i></div>3 de 4 passos da montagem</div>
+            <label class="btn btn-laranja btn-p" for="v-aula">Continuar montagem</label>
+          </div>
+        </article>
+
+        <h2 class="sub-titulo">Projetos concluídos</h2>
+        <ul class="lista-painel proj-lista">
+          <li>
+            <svg class="proj-icone" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="9" fill="#00E676"/><path d="M24 6v5M24 37v5M6 24h5M37 24h5M11 11l3.5 3.5M33.5 33.5L37 37M37 11l-3.5 3.5M14.5 33.5L11 37" stroke="#00E676" stroke-width="2.5" stroke-linecap="round"/></svg>
+            <div><b>Pisca-pisca de boas-vindas</b><span class="arquivo">blink.ino</span></div>
+            <span class="pecas-txt">Aula 1, com 1 LED e 1 resistor</span>
+            <button class="btn btn-ghost btn-p" type="button">Abrir</button>
+          </li>
+          <li>
+            <svg class="proj-icone" viewBox="0 0 48 48" aria-hidden="true"><rect x="16" y="6" width="16" height="36" rx="6" fill="#15171C" stroke="#33508F"/><circle cx="24" cy="14" r="4" fill="#E53935"/><circle cx="24" cy="24" r="4" fill="#FFC107"/><circle cx="24" cy="34" r="4" fill="#00E676"/></svg>
+            <div><b>Semáforo de três tempos</b><span class="arquivo">semaforo.ino</span></div>
+            <span class="pecas-txt">Aula 2, com 3 LEDs e 3 resistores</span>
+            <button class="btn btn-ghost btn-p" type="button">Abrir</button>
+          </li>
+          <li>
+            <svg class="proj-icone" viewBox="0 0 48 48" aria-hidden="true"><rect x="8" y="6" width="16" height="36" rx="6" fill="#15171C" stroke="#33508F"/><circle cx="16" cy="14" r="4" fill="#E53935"/><circle cx="16" cy="24" r="4" fill="#FFC107"/><circle cx="16" cy="34" r="4" fill="#00E676"/><rect x="29" y="26" width="13" height="13" rx="3" fill="#C7CEDA"/><circle cx="35.5" cy="32.5" r="3.5" fill="#FF6D00"/></svg>
+            <div><b>Semáforo com botão de pedestre</b><span class="arquivo">semaforo_botao.ino</span></div>
+            <span class="pecas-txt">Aula 3, com 3 LEDs e 1 botão</span>
+            <button class="btn btn-ghost btn-p" type="button">Abrir</button>
+          </li>
+          <li>
+            <svg class="proj-icone" viewBox="0 0 48 48" aria-hidden="true"><circle cx="19" cy="24" r="11" fill="#15171C" stroke="#33508F"/><circle cx="19" cy="24" r="3" fill="#C7CEDA"/><path d="M35 17a10 10 0 010 14M40 12a17 17 0 010 24" stroke="#FF8A2B" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>
+            <div><b>Campainha musical</b><span class="arquivo">campainha.ino</span></div>
+            <span class="pecas-txt">Aula 4, com 1 buzzer e 1 botão</span>
+            <button class="btn btn-ghost btn-p" type="button">Abrir</button>
+          </li>
+          <li>
+            <svg class="proj-icone" viewBox="0 0 48 48" aria-hidden="true"><path d="M9 16a19 19 0 0130 0" stroke="#FFC107" stroke-width="3" fill="none" stroke-linecap="round" stroke-dasharray="0.1 6.5"/><circle cx="24" cy="29" r="11" fill="#C7CEDA"/><path d="M24 29l6-8" stroke="#0047AB" stroke-width="3.5" stroke-linecap="round"/></svg>
+            <div><b>Luminária com ajuste de brilho</b><span class="arquivo">luminaria.ino</span></div>
+            <span class="pecas-txt">Aula 5, com 1 LED e 1 potenciômetro</span>
+            <button class="btn btn-ghost btn-p" type="button">Abrir</button>
+          </li>
+          <li class="proj-livre">
+            <svg class="proj-icone" viewBox="0 0 48 48" aria-hidden="true"><path d="M24 15v18M15 24h18" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
+            <div><b>Projeto livre</b><span>Invente algo seu com as peças do kit</span></div>
+            <span class="pecas-txt"></span>
+            <button class="btn btn-azul btn-p" type="button">Criar projeto livre</button>
+          </li>
+        </ul>
+      </section>
+
+      <!-- ===== Desafios de Código ===== -->
+      <section class="vista vista-desafios">
+        <div class="aula-cab">
+          <div>
+            <h1>Desafios de código</h1>
+            <p>Problemas curtos para treinar entre uma aula e outra. Cada desafio resolvido vale pontos.</p>
+          </div>
+          <span class="pontos">110 pontos em 4 desafios</span>
+        </div>
+
+        <article class="desafio-semana">
+          <div>
+            <span class="quando">Desafio da semana</span>
+            <h2>Caça ao bug</h2>
+            <p>Este código deveria fazer o LED piscar bem rápido, mas nem compila. Ache o erro e conserte.</p>
+            <div class="fatos"><span class="dif"><i class="on" style="background:#fff"></i><i style="background:#33508F"></i><i style="background:#33508F"></i>Fácil</span><span>20 pontos</span><span>3 tentativas</span></div>
+            <button class="btn btn-verde" type="button">Começar desafio</button>
+          </div>
+          <div class="codigo" aria-label="Código do desafio">
+            <span class="l"><span class="k">void</span> <span class="f">loop</span>() {</span>
+            <span class="l">  <span class="f">digitalWrite</span>(<span class="n">13</span>, <span class="n">HIGH</span>)</span>
+            <span class="l">  <span class="f">delay</span>(<span class="n">150</span>);</span>
+            <span class="l">  <span class="f">digitalWrite</span>(<span class="n">13</span>, <span class="n">LOW</span>);</span>
+            <span class="l">  <span class="f">delay</span>(<span class="n">150</span>);</span>
+            <span class="l">}</span>
+          </div>
+        </article>
+
+        <h2 class="sub-titulo">Todos os desafios</h2>
+        <ul class="lista-painel desafios-lista">
+          <li>
+            <div><b>Pisca em SOS</b><span>Sequência e repetição</span></div>
+            <span class="dif"><i class="on"></i><i></i><i></i>Fácil</span>
+            <span class="pts">20 pontos</span>
+            <span class="acao sit sit-frente">Resolvido</span>
+          </li>
+          <li>
+            <div><b>Semáforo com botão de pedestre</b><span>Condicionais</span></div>
+            <span class="dif"><i class="on"></i><i class="on"></i><i></i>Médio</span>
+            <span class="pts">30 pontos</span>
+            <span class="acao sit sit-frente">Resolvido</span>
+          </li>
+          <li>
+            <div><b>Escala musical no buzzer</b><span>Funções e laços</span></div>
+            <span class="dif"><i class="on"></i><i class="on"></i><i></i>Médio</span>
+            <span class="pts">30 pontos</span>
+            <span class="acao sit sit-frente">Resolvido</span>
+          </li>
+          <li>
+            <div><b>Brilho que sobe e desce</b><span>Laço for e PWM</span></div>
+            <span class="dif"><i class="on"></i><i class="on"></i><i></i>Médio</span>
+            <span class="pts">30 pontos</span>
+            <span class="acao sit sit-frente">Resolvido</span>
+          </li>
+          <li>
+            <div><b>Contador binário com 3 LEDs</b><span>Lógica e números binários</span></div>
+            <span class="dif"><i class="on"></i><i class="on"></i><i></i>Médio</span>
+            <span class="pts">30 pontos</span>
+            <button class="acao btn btn-azul btn-p" type="button">Começar</button>
+          </li>
+          <li>
+            <div><b>Sensor de ré de estacionamento</b><span>Sensores e condicionais</span></div>
+            <span class="dif"><i class="on"></i><i class="on"></i><i class="on"></i>Difícil</span>
+            <span class="pts">50 pontos</span>
+            <button class="acao btn btn-azul btn-p" type="button">Começar</button>
+          </li>
+          <li>
+            <div><b>Robô que para antes da parede</b><span>Motores e sensores</span></div>
+            <span class="dif"><i class="on"></i><i class="on"></i><i class="on"></i>Difícil</span>
+            <span class="pts">50 pontos</span>
+            <span class="acao sit sit-dia">Libera na Aula 8</span>
+          </li>
+        </ul>
+      </section>
+
+      <!-- ===== Minhas Medalhas ===== -->
+      <section class="vista vista-medalhas">
+        <div class="aula-cab">
+          <div>
+            <h1>Minhas medalhas</h1>
+            <p>7 conquistadas e 4 para desbloquear.</p>
+          </div>
+        </div>
+
+        <article class="proxima">
+          <span class="chip chip-travado"><svg viewBox="0 0 72 72" aria-hidden="true"><use href="#chip"/></svg><svg class="glifo" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4"/></svg></span>
+          <div>
+            <h2>Próxima medalha: Maratonista de código</h2>
+            <p>Resolva 10 desafios de código. Você já resolveu 4.</p>
+            <div class="barra" role="progressbar" aria-label="Progresso da medalha" aria-valuemin="0" aria-valuemax="10" aria-valuenow="4"><i style="width:40%"></i></div>
+          </div>
+          <label class="btn btn-azul btn-p" for="v-desafios">Ver desafios</label>
+        </article>
+
+        <h2 class="sub-titulo">Conquistadas</h2>
+        <ul class="medalhas-grade">
+          <li class="medalha"><span class="chip"><svg viewBox="0 0 72 72" aria-hidden="true"><use href="#chip"/></svg><svg class="glifo" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 12a4 4 0 018 0v4H8zM10 16v4M14 16v4M12 3v2M5.5 6L7 7.5M18.5 6L17 7.5"/></svg></span><b>Primeiro Blink</b>Enviou o primeiro código para a placa</li>
+          <li class="medalha"><span class="chip chip-verde"><svg viewBox="0 0 72 72" aria-hidden="true"><use href="#chip"/></svg><svg class="glifo" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6H12v6h5.5M6.5 18H13v-4"/><circle cx="5" cy="6" r="1.5"/><circle cx="19" cy="12" r="1.5"/><circle cx="5" cy="18" r="1.5"/></svg></span><b>Sem curto</b>Montou 3 circuitos sem erro de ligação</li>
+          <li class="medalha"><span class="chip chip-laranja"><svg viewBox="0 0 72 72" aria-hidden="true"><use href="#chip"/></svg><svg class="glifo" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="3" width="8" height="18" rx="3"/><circle cx="12" cy="7.5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="16.5" r="1"/></svg></span><b>Semáforo aberto</b>Concluiu o projeto do semáforo</li>
+          <li class="medalha"><span class="chip"><svg viewBox="0 0 72 72" aria-hidden="true"><use href="#chip"/></svg><svg class="glifo" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="13.5" rx="4" ry="5"/><path d="M12 8.5V6M9.5 6.5l-2-2M14.5 6.5l2-2M8 12H4.5M8 16H4.5M16 12h3.5M16 16h3.5"/></svg></span><b>Caçador de bugs</b>Corrigiu 5 erros com as dicas do tutor</li>
+          <li class="medalha"><span class="chip chip-verde"><svg viewBox="0 0 72 72" aria-hidden="true"><use href="#chip"/></svg><i class="glifo-txt" aria-hidden="true">?</i></span><b>Perguntador</b>Fez 10 perguntas ao tutor</li>
+          <li class="medalha"><span class="chip chip-laranja"><svg viewBox="0 0 72 72" aria-hidden="true"><use href="#chip"/></svg><svg class="glifo" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.9l-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z"/></svg></span><b>Nota máxima</b>Acertou tudo em um questionário</li>
+          <li class="medalha"><span class="chip"><svg viewBox="0 0 72 72" aria-hidden="true"><use href="#chip"/></svg><i class="glifo-txt" aria-hidden="true">5</i></span><b>Mão na massa</b>Concluiu 5 aulas da trilha</li>
+        </ul>
+
+        <h2 class="sub-titulo">Para desbloquear</h2>
+        <ul class="medalhas-grade">
+          <li class="medalha"><span class="chip chip-travado"><svg viewBox="0 0 72 72" aria-hidden="true"><use href="#chip"/></svg><svg class="glifo" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4"/></svg></span><b>Maratonista de código</b>Resolva 10 desafios de código</li>
+          <li class="medalha"><span class="chip chip-travado"><svg viewBox="0 0 72 72" aria-hidden="true"><use href="#chip"/></svg><svg class="glifo" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.5"/></svg></span><b>Robô em movimento</b>Conclua a Aula 7 e faça os motores girarem</li>
+          <li class="medalha"><span class="chip chip-travado"><svg viewBox="0 0 72 72" aria-hidden="true"><use href="#chip"/></svg><svg class="glifo" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14a8 8 0 0116 0M8 14a4 4 0 018 0"/><circle cx="12" cy="14" r="1"/></svg></span><b>Desviador</b>Monte o robô que desvia de obstáculos</li>
+          <li class="medalha"><span class="chip chip-travado"><svg viewBox="0 0 72 72" aria-hidden="true"><use href="#chip"/></svg><svg class="glifo" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17h6M10 20h4M12 3a6 6 0 00-3.5 10.9V15h7v-1.1A6 6 0 0012 3z"/></svg></span><b>Inventor</b>Publique um projeto livre</li>
+        </ul>
+      </section>
+    </main>
+
+    <aside class="app-tutor" aria-label="Assistente de IA RoboMind">
+      <div class="tutor-topo">
+        <svg class="robo" viewBox="0 0 48 48" aria-hidden="true"><rect x="9" y="15" width="30" height="24" rx="6" fill="none" stroke="#00C853" stroke-width="2.5"/><path d="M24 15V8M19 32h10" stroke="#00C853" stroke-width="2.5" stroke-linecap="round"/><circle cx="24" cy="7" r="2.5" fill="#00C853"/><circle cx="18" cy="25" r="3" fill="#FF6D00"/><circle cx="30" cy="25" r="3" fill="#FF6D00"/></svg>
+        <div>
+          <h2>Tutor RoboMind</h2>
+          <p>Pronto para ajudar</p>
+        </div>
+      </div>
+
+      <div class="tutor-msgs">
+        <div class="tutor-set set-aula">
+          <p class="msg msg-tutor">Olá! Vi que seu robô não ligou. Verifique se o pino digital 13 está declarado no <code>setup()</code> ou clique no botão “Analisar meu código” para eu te ajudar!</p>
+          <p class="msg msg-aluno pos-analise">Analisa meu código, por favor.</p>
+          <p class="msg msg-tutor pos-analise">Analisei! Seu <code>loop()</code> está certinho: liga, espera, desliga. O problema vem antes. Olha as linhas 4 a 6, que marquei em laranja: você abriu a comunicação serial, mas não contou para o Arduino o que o pino 13 vai fazer.</p>
+          <p class="msg msg-tutor pos-analise">Que comando avisa que um pino é de saída? O vídeo mostra isso no minuto 2:10. Tenta e me conta!</p>
+        </div>
+        <div class="tutor-set set-aulas">
+          <p class="msg msg-tutor">Você já fechou 5 das 8 aulas. Falta pouco na Aula 6: o LED ainda não acendeu e o questionário está te esperando.</p>
+          <p class="msg msg-tutor">Quando terminar, a Aula 7 libera e o robô ganha motores.</p>
+        </div>
+        <div class="tutor-set set-quiz">
+          <p class="msg msg-tutor">No questionário eu só assisto: nada de dica nem de resposta. Depois que você enviar, explico o que quiser.</p>
+          <p class="msg msg-tutor pos-envio">Respostas enviadas! Ficou com dúvida em alguma? Me diz o número da pergunta que eu explico de outro jeito.</p>
+        </div>
+        <div class="tutor-set set-projetos">
+          <p class="msg msg-tutor">Tudo o que você montou fica guardado aqui, com o código e a lista de peças.</p>
+          <p class="msg msg-tutor">Uma ideia para o projeto livre: juntar o semáforo com o buzzer e fazer um semáforo sonoro para pedestres. Quer que eu te ajude a planejar?</p>
+        </div>
+        <div class="tutor-set set-desafios">
+          <p class="msg msg-tutor">O desafio da semana é de caçar bug. Dica de quem lê muito código: leia a mensagem de erro inteira antes de mexer em qualquer linha.</p>
+        </div>
+        <div class="tutor-set set-medalhas">
+          <p class="msg msg-tutor">Sete medalhas! A próxima está perto: você já resolveu 4 desafios e faltam 6 para a Maratonista de código.</p>
+        </div>
+      </div>
+
+      <div class="tutor-acoes">
+        <label class="btn btn-verde btn-analisar">
+          <input class="vh" type="checkbox" id="analisar">
+          <span class="antes">Analisar meu código</span>
+          <span class="depois">Limpar análise</span>
+        </label>
+        <div class="compor">
+          <input type="text" aria-label="Mensagem para o tutor" placeholder="Pergunte ao tutor">
+          <button type="button" aria-label="Enviar mensagem"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+</div>
+
+<!-- =====================================================
+     TELA 3 — PAINEL DO PROFESSOR E RELATÓRIOS BNCC
+     ===================================================== -->
+<div class="screen" id="professor">
+
+  <header class="app-topo">
+    <span class="logo" aria-label="RoboMind"><svg class="logo-icone" aria-hidden="true"><use href="#logo-robo"/></svg><span><span class="logo-robo">Robo</span><span class="logo-mind">Mind</span></span></span>
+    <span class="escola">Colégio Horizonte</span>
+    <div class="perfil">
+      <div><b>Marina Couto</b><span>Professora de Robótica</span></div>
+      <span class="iniciais" aria-hidden="true">MC</span>
+    </div>
+  </header>
+
+  <main class="prof">
+    <div class="prof-cab">
+      <h1>Progresso da turma</h1>
+      <div class="prof-acoes">
+        <select class="turma" aria-label="Turma">
+          <option>8º ano B</option>
+          <option>8º ano A</option>
+          <option>9º ano A</option>
+        </select>
+        <button class="btn btn-azul btn-p" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></svg>
+          Baixar plano da Aula 6 (PDF)
+        </button>
+      </div>
+    </div>
+    <p class="resumo">A turma tem <b>24 alunos</b>. <b>19</b> já concluíram a Aula 5 e <b>9</b> terminaram a Aula 6, que está em andamento. <b>3 alunos</b> precisam de apoio nesta semana.</p>
+
+    <div class="prof-grade">
+      <section class="painel" aria-labelledby="g-titulo">
+        <h2 id="g-titulo">Alunos que concluíram cada aula</h2>
+        <p class="painel-sub">De um total de 24 alunos</p>
+        <div class="colunas" role="img" aria-label="Aula 1: 24 alunos. Aula 2: 24. Aula 3: 22. Aula 4: 21. Aula 5: 19. Aula 6: 9. Aula 7: 2. Aula 8: nenhum.">
+          <div class="col"><div class="col-barra"><b>24</b><i style="--v:100"></i></div><span>Aula 1</span></div>
+          <div class="col"><div class="col-barra"><b>24</b><i style="--v:100"></i></div><span>Aula 2</span></div>
+          <div class="col"><div class="col-barra"><b>22</b><i style="--v:91.7"></i></div><span>Aula 3</span></div>
+          <div class="col"><div class="col-barra"><b>21</b><i style="--v:87.5"></i></div><span>Aula 4</span></div>
+          <div class="col"><div class="col-barra"><b>19</b><i style="--v:79.2"></i></div><span>Aula 5</span></div>
+          <div class="col atual"><div class="col-barra"><b>9</b><i style="--v:37.5"></i></div><span>Aula 6</span></div>
+          <div class="col"><div class="col-barra"><b>2</b><i style="--v:8.3"></i></div><span>Aula 7</span></div>
+          <div class="col"><div class="col-barra"><b>0</b><i style="--v:0"></i></div><span>Aula 8</span></div>
+        </div>
+        <div class="legenda"><span>Aulas anteriores e seguintes</span><span class="atual">Aula em andamento</span></div>
+      </section>
+
+      <div class="pilha">
+        <section class="painel" aria-labelledby="e-titulo">
+          <h2 id="e-titulo">Habilidades da BNCC atingidas</h2>
+          <p class="painel-sub">Média da turma por eixo da BNCC Computação</p>
+          <div class="eixo">
+            <div class="eixo-linha"><span>Pensamento computacional</span><b>78%</b></div>
+            <div class="barra"><i style="width:78%"></i></div>
+          </div>
+          <div class="eixo">
+            <div class="eixo-linha"><span>Mundo digital</span><b>64%</b></div>
+            <div class="barra"><i style="width:64%"></i></div>
+          </div>
+          <div class="eixo">
+            <div class="eixo-linha"><span>Cultura digital</span><b>51%</b></div>
+            <div class="barra"><i style="width:51%"></i></div>
+          </div>
+        </section>
+
+        <section class="painel" aria-labelledby="a-titulo">
+          <h2 id="a-titulo">Quem precisa de apoio</h2>
+          <ul class="apoio">
+            <li><span class="iniciais" aria-hidden="true">DL</span><div><b>Davi Lacerda</b><span>Parou na Aula 4 há duas semanas</span></div></li>
+            <li><span class="iniciais" aria-hidden="true">SB</span><div><b>Sofia Brandão</b><span>5 pedidos de ajuda ao tutor na Aula 6</span></div></li>
+            <li><span class="iniciais" aria-hidden="true">LF</span><div><b>Lucas Ferraz</b><span>4 pedidos de ajuda ao tutor na Aula 6</span></div></li>
+          </ul>
+        </section>
+      </div>
+    </div>
+
+    <section class="painel bloco" aria-labelledby="t-titulo">
+      <h2 id="t-titulo">Desafios concluídos e habilidades por aluno</h2>
+      <p class="painel-sub">Cada código é uma habilidade da BNCC Computação trabalhada nas aulas de robótica</p>
+      <div class="tabela-rolagem">
+        <table>
+          <thead>
+            <tr><th scope="col">Aluno</th><th scope="col">Desafios concluídos</th><th scope="col">Aula atual</th><th scope="col">Habilidades atingidas</th><th scope="col">Pedidos ao tutor</th><th scope="col">Situação</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="aluno-nome">Ana Clara Ribeiro</td>
+              <td><div class="mini"><div class="barra"><i style="width:75%"></i></div>6 de 8</div></td>
+              <td>Aula 7</td>
+              <td><div class="habs"><span class="hab">EF08CO01</span><span class="hab">EF08CO02</span><span class="hab">EF08CO04</span><span class="hab">EF69CO02</span></div></td>
+              <td class="num">3</td>
+              <td><span class="sit sit-dia">Em dia</span></td>
+            </tr>
+            <tr>
+              <td class="aluno-nome">Bruno Tavares</td>
+              <td><div class="mini"><div class="barra"><i style="width:75%"></i></div>6 de 8</div></td>
+              <td>Aula 7</td>
+              <td><div class="habs"><span class="hab">EF08CO01</span><span class="hab">EF08CO02</span><span class="hab">EF08CO04</span></div></td>
+              <td class="num">6</td>
+              <td><span class="sit sit-dia">Em dia</span></td>
+            </tr>
+            <tr>
+              <td class="aluno-nome">Camila Nogueira</td>
+              <td><div class="mini"><div class="barra"><i style="width:62.5%"></i></div>5 de 8</div></td>
+              <td>Aula 6</td>
+              <td><div class="habs"><span class="hab">EF08CO01</span><span class="hab">EF08CO02</span></div></td>
+              <td class="num">2</td>
+              <td><span class="sit sit-dia">Em dia</span></td>
+            </tr>
+            <tr>
+              <td class="aluno-nome">Davi Lacerda</td>
+              <td><div class="mini"><div class="barra"><i style="width:37.5%"></i></div>3 de 8</div></td>
+              <td>Aula 4</td>
+              <td><div class="habs"><span class="hab">EF08CO01</span></div></td>
+              <td class="num">1</td>
+              <td><span class="sit sit-apoio">Precisa de apoio</span></td>
+            </tr>
+            <tr>
+              <td class="aluno-nome">Eduarda Pires</td>
+              <td><div class="mini"><div class="barra"><i style="width:87.5%"></i></div>7 de 8</div></td>
+              <td>Aula 8</td>
+              <td><div class="habs"><span class="hab">EF08CO01</span><span class="hab">EF08CO02</span><span class="hab">EF08CO04</span><span class="hab">EF69CO02</span><span class="hab">EF69CO05</span></div></td>
+              <td class="num">4</td>
+              <td><span class="sit sit-frente">Adiantada</span></td>
+            </tr>
+            <tr>
+              <td class="aluno-nome">Felipe Moraes</td>
+              <td><div class="mini"><div class="barra"><i style="width:62.5%"></i></div>5 de 8</div></td>
+              <td>Aula 6</td>
+              <td><div class="habs"><span class="hab">EF08CO01</span><span class="hab">EF08CO02</span></div></td>
+              <td class="num">2</td>
+              <td><span class="sit sit-dia">Em dia</span></td>
+            </tr>
+            <tr>
+              <td class="aluno-nome">Giovana Antunes</td>
+              <td><div class="mini"><div class="barra"><i style="width:62.5%"></i></div>5 de 8</div></td>
+              <td>Aula 6</td>
+              <td><div class="habs"><span class="hab">EF08CO01</span><span class="hab">EF08CO02</span><span class="hab">EF69CO02</span></div></td>
+              <td class="num">3</td>
+              <td><span class="sit sit-dia">Em dia</span></td>
+            </tr>
+            <tr>
+              <td class="aluno-nome">Lucas Ferraz</td>
+              <td><div class="mini"><div class="barra"><i style="width:62.5%"></i></div>5 de 8</div></td>
+              <td>Aula 6</td>
+              <td><div class="habs"><span class="hab">EF08CO01</span><span class="hab">EF08CO02</span></div></td>
+              <td class="num">4</td>
+              <td><span class="sit sit-apoio">Precisa de apoio</span></td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="tabela-pe">Mostrando 8 de 24 alunos</p>
+      </div>
+    </section>
+
+    <section class="painel bloco" aria-labelledby="p-titulo">
+      <h2 id="p-titulo">Planos de aula</h2>
+      <p class="painel-sub">Prontos para aplicar na aula presencial</p>
+      <ul class="planos">
+        <li><div><b>Aula 6: LED de status do robô</b><span>PDF com roteiro de 50 minutos, lista de peças e gabarito do desafio</span></div><button class="btn btn-azul btn-p" type="button">Baixar PDF</button></li>
+        <li><div><b>Aula 7: Motores e ponte H</b><span>PDF com roteiro de 50 minutos, lista de peças e gabarito do desafio</span></div><button class="btn btn-ghost btn-p" type="button">Baixar PDF</button></li>
+        <li><div><b>Aula 8: Sensor ultrassônico e desvio de obstáculos</b><span>PDF com roteiro de duas aulas, lista de peças e rubrica de avaliação</span></div><button class="btn btn-ghost btn-p" type="button">Baixar PDF</button></li>
+      </ul>
+    </section>
+  </main>
+</div>
+
+</body>
+</html>
